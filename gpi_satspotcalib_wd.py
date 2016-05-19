@@ -15,7 +15,6 @@ from scipy.io import readsav
 import multiprocessing as mp
 from scipy import ndimage
 
-
 cmap = 'inferno'
 
 def aperture_phot(im, xy, sat_xy, star_xy, wl, app = 1.5, median_filter = False, mask_size = 7.5, wedge_sky = False, fig = False):
