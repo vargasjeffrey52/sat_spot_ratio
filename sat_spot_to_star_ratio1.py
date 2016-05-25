@@ -11,6 +11,9 @@ import math as m
 import astropy.io.fits as pf
 import glob
 import os
+from scipy import ndimage
+from scipy import optimize
+
 #----------------------------------------------------------------------------
 #________________________Path and directories and global parameters_____________
 
@@ -567,3 +570,83 @@ nc_4star = "C:/Python34/GPIcode/h_band/no_skyval_sub/No_coronograph_files/4_star
 nc_2dm   = "C:/Python34/GPIcode/h_band/no_skyval_sub/No_coronograph_files/2_dm"
 nc_3dm   = "C:/Python34/GPIcode/h_band/no_skyval_sub/No_coronograph_files/3_dm"
 nc_4dm   = "C:/Python34/GPIcode/h_band/no_skyval_sub/No_coronograph_files/4_dm"
+
+
+
+def pixel_map(image,x,y):
+
+    image[np.isnan(image)] = np.nanmedian(image)
+    return ndimage.map_coordinates(image, (y,x),cval=np.nan)
+
+
+def gen_xy(size):
+# contains the index of row and coloumn     
+    s = np.array([size,size])
+    x,y = np.meshgrid(np.arange(s[1]),np.arange(s[0]))
+    return x,y
+
+def twoD_Gaussian(xy, amplitude, xo, yo, sigma, offset):
+    x,y = xy
+    xo = float(xo)
+    yo = float(yo)    
+    a = 1.0 / (2.0 * sigma**2.0)
+    b = 1.0 / (2.0 * sigma**2.0)
+    g = offset + amplitude*np.exp( - ((a*((x-xo)**2)) + (b*((y-yo)**2))))
+    
+    return g.ravel()
+
+
+def pixel_cutout(image,size,xguess, yguess, save = False):
+    size = float(size)
+    xguess = float(xguess)
+    yguess = float(yguess)
+    x,y = gen_xy(size)
+    x += (xguess-size/2.)
+    y += (yguess-size/2.)
+   
+    output = pixel_map(image,x,y)
+    xc,yc = return_pos(output, (xguess,yguess), x,y)
+    if save == True:
+        write = pf.writeto("cutout1.fits", output,clobber = True)
+
+    x,y = gen_xy(size)
+    x += (xc-size/2.)
+    y += (yc-size/2.)
+    output = pixel_map(image,x,y)
+    if save == True:
+        write = pf.writeto("cutout2.fits", output,clobber = True)
+
+
+    return output
+
+
+def return_pos(im, xy_guess,x,y):
+
+    #Fit WD location in slice from guess
+   # pad = 10
+    #stamp = im[xy_guess[1]-pad:xy_guess[1]+pad, xy_guess[0]-pad:xy_guess[0]+pad]
+    #stamp[np.isnan(stamp)] = np.nanmedian(stamp)
+    p0 = [np.nanmax(im), xy_guess[0], xy_guess[1], 3.0, 0.0]
+    '''
+    p0 -guess for the 5 parameter of 2d gaussian
+    np.nanmax(stamp) - peak value in the variable stamp
+    pad - xc,yc from pixel_cutout size/2 center of the image where the cal or sat spot should be
+    3.0 - the full width half max in pixel (width of gaussian)
+    0.0 - constant value to shift 
+    '''
+
+    #s = np.shape(stamp)
+   # x, y = np.meshgrid(np.arange(s[1], dtype=np.float64), np.arange(s[0], dtype=np.float64))
+    """ x,y - is the same coordinate as pixel cutout after adding xc and yc. this is to keep it relative
+        to the size of original image
+    """
+    popt, pcov = optimize.curve_fit(twoD_Gaussian, (x, y), im.ravel(), p0 = p0)
+    print(popt)
+    # xy - pad : is a constant to convert the coordinate back to the original image coordinate frame,
+    # in my code i already added the contant term pad --> xc, yc therefore no need to add pad
+    # for my code xy = [popt[1],popt[2]]
+    #xy = [popt[1] + (xy_guess[0] - pad), popt[2] + (xy_guess[1] - pad)]    
+
+    return popt[1],  popt[2]
+
+
