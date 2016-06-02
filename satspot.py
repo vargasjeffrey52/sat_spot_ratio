@@ -273,6 +273,61 @@ def pixel_cutout(image,size,xguess, yguess, save = False):
     return output
 
 
+def loop_pixcut(image,size,center_guess,save = False):
+    """ Loops over same slice cuts out the specified spots. For example, Dm spot
+        have 4 location in any given slice which means it will cut out 4 images. It
+        then will will average the cut out images to produce 1 averaged image.
+    Args:
+        image - a slice of the original data cube
+        size  - the size of the sides of the box cutout
+        center_guess - (x_i,y_i) coordinate array
+        save  - option to save image cutout with initial guess and after
+                center has been optimized
+    Return:
+        box_img - average image for same slice. 
+    """
+    box_img = []
+
+    for i in center_guess:
+        cutout = pixel_cutout(image,size,i[0],i[1],save)
+        box_img.append(cutout)
+    box_img = (np.sum(box_img,axis=0))/len(box_img)
+    
+    return box_img
+
+
+def slice_loop(path,fnum,size,center_guess,save = False):
+    """ loops over all slices and creates an average image for the specified spots at each 
+        wavelength slice. At the end there is a total of 37 averaged images.
+    Args: 
+       path - is the path in where the file is located (see multiple_files function)
+       fnum - used to index file from multiple file array (see multiple_file function)
+       size - the size of the sides of the box cutout
+       center_guess - initial guess for center of spot.
+       save - option to save image cutout with initial guess and after
+                center has been optimized
+    Return: 
+        box - data cube with 37 averaged images.
+    """
+
+
+    image = get_info1(path,fnum)[1] # 1 returns image from get_info1 function.
+    center = open_img(center_guess)
+    box = []
+    index = 0
+
+    for img in image:
+        cent = center[index]
+        ave_cut = loop_pixcut(img,size,cent,save)
+        box.append(ave_cut)
+        index +=1
+
+    box = np.array(box)
+    print('shape of cube image', np.shape(box))
+    
+    return box       
+
+
 
 
 

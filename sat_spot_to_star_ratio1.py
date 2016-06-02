@@ -54,7 +54,7 @@ def file_number(fyle): # enumerates the files for any band SUB FUCNTION
 def open_img(file_location): #opens the matrix containing image
     hdu = pf.open(file_location)
     hdr = hdu[0].header
-    print(hdr)
+    #print(hdr)
     img = hdu[0].data
     return img
 
@@ -76,6 +76,7 @@ def open_hdr(file_location):
 
 def get_info1(path,index): # path is the raw data location for a particular fits file w/o coronograph
     fyle = multiple_files(path)[index]
+    print("file name " , fyle)
     num_file = file_number(fyle)
 
     hdulist = pf.open(fyle)
@@ -375,7 +376,7 @@ def multiple_txt(path):
 
 def ratio_mean_dmsat(sat_path,dm_path,start,end):
     # "sat_path" and "dm_path"is the sub path to 
-    # example: star_path = "C:/Python34/GPIcode/star"
+    # example: star_path = "C:/Python34/GPIcode/aperture_calibration/star"
     # "start" and "end" is the slice range
     sat_paths = multiple_txt(sat_path)
     #print(np.shape(sat_paths))
@@ -545,31 +546,31 @@ def all_files_same_slice(band_path,slyce):
     plt.tight_layout()
     return plt.show()
 
-dm2 =   "C:/Python34/GPIcode/h_band/no_skyval_sub/coronagraph_files/2_dm"
-dm3 =   "C:/Python34/GPIcode/h_band/no_skyval_sub/coronagraph_files/3_dm"
-dm4 =   "C:/Python34/GPIcode/h_band/no_skyval_sub/coronagraph_files/4_dm"
-dm5 =   "C:/Python34/GPIcode/h_band/no_skyval_sub/coronagraph_files/5_dm"
-dm6 =   "C:/Python34/GPIcode/h_band/no_skyval_sub/coronagraph_files/6_dm"
-dm7 =   "C:/Python34/GPIcode/h_band/no_skyval_sub/coronagraph_files/7_dm"
-dm8 =   "C:/Python34/GPIcode/h_band/no_skyval_sub/coronagraph_files/8_dm" 
+dm2 =   "C:/Python34/GPIcode/aperture_calibration/h_band/no_skyval_sub/coronagraph_files/2_dm"
+dm3 =   "C:/Python34/GPIcode/aperture_calibration/h_band/no_skyval_sub/coronagraph_files/3_dm"
+dm4 =   "C:/Python34/GPIcode/aperture_calibration/h_band/no_skyval_sub/coronagraph_files/4_dm"
+dm5 =   "C:/Python34/GPIcode/aperture_calibration/h_band/no_skyval_sub/coronagraph_files/5_dm"
+dm6 =   "C:/Python34/GPIcode/aperture_calibration/h_band/no_skyval_sub/coronagraph_files/6_dm"
+dm7 =   "C:/Python34/GPIcode/aperture_calibration/h_band/no_skyval_sub/coronagraph_files/7_dm"
+dm8 =   "C:/Python34/GPIcode/aperture_calibration/h_band/no_skyval_sub/coronagraph_files/8_dm" 
 
 
-sat2 = "C:/Python34/GPIcode/h_band/no_skyval_sub/coronagraph_files/2_sat"
-sat3 = "C:/Python34/GPIcode/h_band/no_skyval_sub/coronagraph_files/3_sat"
-sat4 = "C:/Python34/GPIcode/h_band/no_skyval_sub/coronagraph_files/4_sat"
-sat5 = "C:/Python34/GPIcode/h_band/no_skyval_sub/coronagraph_files/5_sat"
-sat6 = "C:/Python34/GPIcode/h_band/no_skyval_sub/coronagraph_files/6_sat"
-sat7 = "C:/Python34/GPIcode/h_band/no_skyval_sub/coronagraph_files/7_sat"
-sat8 = "C:/Python34/GPIcode/h_band/no_skyval_sub/coronagraph_files/8_sat"
+sat2 = "C:/Python34/GPIcode/aperture_calibration/h_band/no_skyval_sub/coronagraph_files/2_sat"
+sat3 = "C:/Python34/GPIcode/aperture_calibration/h_band/no_skyval_sub/coronagraph_files/3_sat"
+sat4 = "C:/Python34/GPIcode/aperture_calibration/h_band/no_skyval_sub/coronagraph_files/4_sat"
+sat5 = "C:/Python34/GPIcode/aperture_calibration/h_band/no_skyval_sub/coronagraph_files/5_sat"
+sat6 = "C:/Python34/GPIcode/aperture_calibration/h_band/no_skyval_sub/coronagraph_files/6_sat"
+sat7 = "C:/Python34/GPIcode/aperture_calibration/h_band/no_skyval_sub/coronagraph_files/7_sat"
+sat8 = "C:/Python34/GPIcode/aperture_calibration/h_band/no_skyval_sub/coronagraph_files/8_sat"
 
 
-nc_2star = "C:/Python34/GPIcode/h_band/no_skyval_sub/No_coronograph_files/2_star"
-nc_3star = "C:/Python34/GPIcode/h_band/no_skyval_sub/No_coronograph_files/3_star"
-nc_4star = "C:/Python34/GPIcode/h_band/no_skyval_sub/No_coronograph_files/4_star"
+nc_2star = "C:/Python34/GPIcode/aperture_calibration/h_band/no_skyval_sub/No_coronograph_files/2_star"
+nc_3star = "C:/Python34/GPIcode/aperture_calibration/h_band/no_skyval_sub/No_coronograph_files/3_star"
+nc_4star = "C:/Python34/GPIcode/aperture_calibration/h_band/no_skyval_sub/No_coronograph_files/4_star"
 
-nc_2dm   = "C:/Python34/GPIcode/h_band/no_skyval_sub/No_coronograph_files/2_dm"
-nc_3dm   = "C:/Python34/GPIcode/h_band/no_skyval_sub/No_coronograph_files/3_dm"
-nc_4dm   = "C:/Python34/GPIcode/h_band/no_skyval_sub/No_coronograph_files/4_dm"
+nc_2dm   = "C:/Python34/GPIcode/aperture_calibration/h_band/no_skyval_sub/No_coronograph_files/2_dm"
+nc_3dm   = "C:/Python34/GPIcode/aperture_calibration/h_band/no_skyval_sub/No_coronograph_files/3_dm"
+nc_4dm   = "C:/Python34/GPIcode/aperture_calibration/h_band/no_skyval_sub/No_coronograph_files/4_dm"
 
 
 
@@ -596,30 +597,6 @@ def twoD_Gaussian(xy, amplitude, xo, yo, sigma, offset):
     return g.ravel()
 
 
-def pixel_cutout(image,size,xguess, yguess, save = False):
-    size = float(size)
-    xguess = float(xguess)
-    yguess = float(yguess)
-    x,y = gen_xy(size)
-    x += (xguess-size/2.)
-    y += (yguess-size/2.)
-   
-    output = pixel_map(image,x,y)
-    xc,yc = return_pos(output, (xguess,yguess), x,y)
-    if save == True:
-        write = pf.writeto("cutout1.fits", output,clobber = True)
-
-    x,y = gen_xy(size)
-    x += (xc-size/2.)
-    y += (yc-size/2.)
-    output = pixel_map(image,x,y)
-    if save == True:
-        write = pf.writeto("cutout2.fits", output,clobber = True)
-
-
-    return output
-
-
 def return_pos(im, xy_guess,x,y):
 
     #Fit WD location in slice from guess
@@ -641,12 +618,241 @@ def return_pos(im, xy_guess,x,y):
         to the size of original image
     """
     popt, pcov = optimize.curve_fit(twoD_Gaussian, (x, y), im.ravel(), p0 = p0)
-    print(popt)
+    #print(popt)
     # xy - pad : is a constant to convert the coordinate back to the original image coordinate frame,
     # in my code i already added the contant term pad --> xc, yc therefore no need to add pad
     # for my code xy = [popt[1],popt[2]]
     #xy = [popt[1] + (xy_guess[0] - pad), popt[2] + (xy_guess[1] - pad)]    
 
     return popt[1],  popt[2]
+
+
+def pixel_cutout(image,size,xguess, yguess, name1, name2,save = False):
+    size = float(size)
+    xguess = float(xguess)
+    yguess = float(yguess)
+    x,y = gen_xy(size)
+    x += (xguess-size/2.)
+    y += (yguess-size/2.)
+   
+    output = pixel_map(image,x,y)
+    xc,yc = return_pos(output, (xguess,yguess), x,y)
+    #name1 = "psf_fitting/spot_cutout/"+str(xguess)+'_'+str(yguess)+'a.fits'
+    #name2 = "psf_fitting/spot_cutout/"+str(xguess)+'_'+str(yguess)+'b.fits'
+    if save == True:
+        write = pf.writeto(name1, output,clobber = True)
+
+    x,y = gen_xy(size)
+    x += (xc-size/2.)
+    y += (yc-size/2.)
+    output = pixel_map(image,x,y)
+    if save == True:
+        write = pf.writeto(name2, output,clobber = True)
+
+    return output
+
+def loop_pixcut(image,size,center_guess,imslice,save = False):
+    """ Loops over same slice cuts out the specified spots. For example, Dm spot
+        have 4 location in any given slice which means it will cut out 4 images. It
+        then will will average the cut out images to produce 1 averaged image.
+    Args:
+        image - a slice of the original data cube
+        size  - the size of the sides of the box cutout
+        center_guess - (x_i,y_i) coordinate array
+        save  - option to save image cutout with initial guess and after
+                center has been optimized
+    Return:
+        box_img - average image for same slice. 
+    """
+    box_img = []
+    location = "psf_fitting/spot_cutout/" 
+    spot = 0
+    spoti = ['A','B','C','D']
+
+    for i in center_guess:
+        name1 = pname(location,'b_opt'+'_sat'+spoti[spot]+'s'+ str(imslice),'.fits')
+        name2 = pname(location,'a_opt'+'_sat'+spoti[spot]+'s'+ str(imslice),'.fits')
+        #print(i)+'s'+ str(imslice)
+        #print(np.shape(i))
+        cutout = pixel_cutout(image,size,i[0],i[1],name1,name2,save)
+        box_img.append(cutout)
+        spot +=1
+    box_img = (np.sum(box_img,axis=0))/len(box_img)
+    
+    return box_img
+
+
+def slice_loop(path,fnum,size,center_guess,save = False):
+    """ loops over all slices and creates an average image for the specified spots at each 
+        wavelength slice. At the end there is a total of 37 averaged images.
+    Args: 
+       path - is the path in where the file is located (see multiple_files function)
+       fnum - used to index file from multiple file array (see multiple_file function)
+       size - the size of the sides of the box cutout
+       center_guess - initial guess for center of spot.
+       save - option to save image cutout with initial guess and after
+                center has been optimized
+    Return: 
+        box - data cube with 37 averaged images.
+    """
+
+    image = get_info1(path,fnum)[1] # fnum is the index fits file.
+    center = open_img(center_guess)
+    #print(np.shape(image))
+    box = []
+    index = 0
+    for img in image:
+        cent = center[index]
+        #print(np.shape(center))
+        ave_cut = loop_pixcut(img,size,cent,index,save)
+        box.append(ave_cut)
+        index +=1
+    box = np.array(box)
+    print('before vstatck', np.shape(box))
+    #box_slice = np.vstack((box[:,:,:]))
+    #print(np.shape(box_slice))
+    return box       
+
+
+
+
+# approx center path
+#center_guess = "C:/Python34/GPIcode/saved/Hband/approx_center_C_Hband.txt"
+center_dm = "C:/Python34/GPIcode/psf_fitting/guess_center/dm_center.fits"
+center_sat = "C:/Python34/GPIcode/psf_fitting/guess_center/sat_center.fits"
+
+def main_loop():
+    #center_guess = center_dm
+    center_guess = center_sat
+    path = hband_path
+    fnum = 5
+    size = 30
+    save = True
+    loop = slice_loop(path,fnum,size,center_guess,save)
+    write = pf.writeto("C:/Python34/GPIcode/psf_fitting/spot_cutout/c_satcut_ave.fits",loop,clobber =True)
+    return np.shape(loop)
+
+
+
+#======================= cut out images ==============================
+
+def pname(path,name,ftype):
+    return path + name + ftype
+
+def sorttime(path):
+    fyles = sorted(glob.glob(path + '*.fits'))
+    #print(fyles)
+    fyles.sort(key=os.path.getmtime)
+    #print(fyles)
+    return fyles
+
+def cut_imshow(path):
+    images = multiple_files(path)
+    print(images)
+
+def main_show():
+    dmA = sorttime("C:/Python34/GPIcode/psf_fitting/spot_cutout/a_opt_dmA")
+    dmB = sorttime("C:/Python34/GPIcode/psf_fitting/spot_cutout/a_opt_dmB")
+    dmC = sorttime("C:/Python34/GPIcode/psf_fitting/spot_cutout/a_opt_dmC")
+    dmD = sorttime("C:/Python34/GPIcode/psf_fitting/spot_cutout/a_opt_dmD")
+
+    satA = sorttime("C:/Python34/GPIcode/psf_fitting/spot_cutout/a_opt_satA")
+    satB = sorttime("C:/Python34/GPIcode/psf_fitting/spot_cutout/a_opt_satB")
+    satC = sorttime("C:/Python34/GPIcode/psf_fitting/spot_cutout/a_opt_satC")
+    satD = sorttime("C:/Python34/GPIcode/psf_fitting/spot_cutout/a_opt_satD")
+
+    av_sat = "C:/Python34/GPIcode/psf_fitting/spot_cutout/c_satcut_ave.fits"
+    av_dm = "C:/Python34/GPIcode/psf_fitting/spot_cutout/c_dmcut_ave.fits"
+
+    index = 0
+
+    while index != len(dmA):
+
+        #print(index)
+        #print(dmA[index])
+        da = open_img(dmA[index])
+        #print(da)
+        db = open_img(dmB[index])
+        dc = open_img(dmC[index])
+        dd = open_img(dmD[index])
+
+        sa = open_img(satA[index])
+        #print(sa)
+        sb = open_img(satB[index])
+        sc = open_img(satC[index])
+        sd = open_img(satD[index])
+
+        # ----------------------
+
+        fig = plt.figure(figsize=(10,10))
+        fig.suptitle('slice='+str(index))
+        dm1 = plt.subplot(4,3,1)
+        dm1.imshow(da,interpolation='nearest',cmap='gnuplot2')
+        #plt.axis('off')
+
+        dm2 = plt.subplot(4,3,4)
+        dm2.imshow(db,interpolation='nearest',cmap='gnuplot2')
+        #plt.axis('off')
+
+        dm3 = plt.subplot(4,3,7)
+        dm3.imshow(dc,interpolation='nearest',cmap='gnuplot2')
+        #plt.axis('off')
+
+        dm4 = plt.subplot(4,3,10)
+        dm4.imshow(dd,interpolation='nearest',cmap='gnuplot2')
+        #plt.axis('off')
+        # --------------
+
+        sat1 = plt.subplot(4,3,2)
+        sat1.imshow(sa,interpolation='nearest',cmap='gnuplot2')
+        #plt.axis('off')
+
+        sat2 = plt.subplot(4,3,5)
+        sat2.imshow(sb,interpolation='nearest',cmap='gnuplot2')
+        #plt.axis('off')
+
+        sat3 = plt.subplot(4,3,8)
+        sat3.imshow(sc,interpolation='nearest',cmap='gnuplot2')
+        #plt.axis('off')
+
+        sat4 = plt.subplot(4,3,11)
+        sat4.imshow(sd,interpolation='nearest',cmap='gnuplot2')
+        #plt.axis('off') 
+
+        # ----------------------
+        ave_sat = open_img(av_sat)[index]
+        #print (np.shape(ave_sat))
+        ave_dm  = open_img(av_dm)[index]
+
+        avesat = plt.subplot(4,3,3)
+        avesat.imshow(ave_sat,interpolation='nearest',cmap='gnuplot2')
+        #plt.axis('off')
+
+        avedm = plt.subplot(4,3,6)
+        avedm.imshow(ave_dm,interpolation='nearest',cmap='gnuplot2')
+        #plt.axis('off')
+
+        
+
+        plt.subplots_adjust(wspace=0.1,hspace=0.1)
+
+
+        #plt.tight_layout()
+        #plt.show() 
+        fig.savefig('calibrate'+ str(index)+'.png', bbox_inches='tight')  
+        plt.close('all')   
+
+
+
+   
+
+        index +=1
+        #print(t)
+    #plt.tight_layout()
+    #plt.show()
+    plt.close('all')
+
+    return dmA
+
 
 
