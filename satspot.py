@@ -236,7 +236,7 @@ def return_pos(im, xy_guess,x,y):
     return popt[1],  popt[2]
 
 
-def pixel_cutout(image,size,xguess, yguess, save = False):
+def pixel_cutout(image,size,xguess, yguess, name1='none', name2='none',save = False):
     """ combines the above functions in this section. Used to create box cutout centered at 
         the specified spot.
     Args:
@@ -244,12 +244,12 @@ def pixel_cutout(image,size,xguess, yguess, save = False):
         size  - the size of the sides of the box cutout
         xguess - initial x coordinate guess to center of spot
         yguess - initial y coordinate guess to center of spot
+        name1,2 - when save set to True, this will be the name of the file
         save   - option to save image cutout with initial guess and after
                     center has been optimized 
     Return:
         output - box cutout of spot with optimized center 
     """
-
     size = float(size)
     xguess = float(xguess)
     yguess = float(yguess)
@@ -259,21 +259,24 @@ def pixel_cutout(image,size,xguess, yguess, save = False):
    
     output = pixel_map(image,x,y)
     xc,yc = return_pos(output, (xguess,yguess), x,y)
+    
     if save == True:
-        write = pf.writeto("cutout1.fits", output,clobber = True)
+        # image before center optimization
+        write = pf.writeto(name1, output,clobber = True)
 
     x,y = gen_xy(size)
     x += (xc-size/2.)
     y += (yc-size/2.)
     output = pixel_map(image,x,y)
-    if save == True:
-        write = pf.writeto("cutout2.fits", output,clobber = True)
 
+    if save == True:
+        # image after center optimization
+        write = pf.writeto(name2, output,clobber = True)
 
     return output
 
 
-def loop_pixcut(image,size,center_guess,save = False):
+def loop_pixcut(image,size,center_guess,imslice=0,save = False):
     """ Loops over same slice cuts out the specified spots. For example, Dm spot
         have 4 location in any given slice which means it will cut out 4 images. It
         then will will average the cut out images to produce 1 averaged image.
@@ -281,16 +284,29 @@ def loop_pixcut(image,size,center_guess,save = False):
         image - a slice of the original data cube
         size  - the size of the sides of the box cutout
         center_guess - (x_i,y_i) coordinate array
+        imslice - used to name and indicate which slice is the cut being don on
         save  - option to save image cutout with initial guess and after
                 center has been optimized
     Return:
         box_img - average image for same slice. 
     """
     box_img = []
-
+    spot = 0
+    
     for i in center_guess:
-        cutout = pixel_cutout(image,size,i[0],i[1],save)
+
+        if save == True:
+            # SAVES TO CURRENT DIRECTORY
+            spoti = ['A','B','C','D']
+            name1 = 'b_opt'+'_sat'+str(spoti[spot])+'s'+ str(imslice)+'.fits'
+            name2 = 'a_opt'+'_sat'+str(spoti[spot])+'s'+ str(imslice)+'.fits'
+            cutout = pixel_cutout(image,size,i[0],i[1],name1,name2,save)
+        else:
+            cutout = pixel_cutout(image,size,i[0],i[1])
+
         box_img.append(cutout)
+        spot +=1
+
     box_img = (np.sum(box_img,axis=0))/len(box_img)
     
     return box_img
@@ -311,22 +327,22 @@ def slice_loop(path,fnum,size,center_guess,save = False):
     """
 
 
-    image = get_info1(path,fnum)[1] # 1 returns image from get_info1 function.
+
+    image = get_info1(path,fnum)[1] # 1 returns the img from get_info1 function
     center = open_img(center_guess)
     box = []
-    index = 0
-
+    imslice = 0
+    
     for img in image:
-        cent = center[index]
-        ave_cut = loop_pixcut(img,size,cent,save)
+        cent = center[imslice]
+        ave_cut = loop_pixcut(img,size,cent,imslice,save)
         box.append(ave_cut)
-        index +=1
+        imslice +=1
 
     box = np.array(box)
-    print('shape of cube image', np.shape(box))
-    
-    return box       
-
+    print('shape of cube ave image', np.shape(box))
+   
+    return box  
 
 
 

@@ -627,7 +627,7 @@ def return_pos(im, xy_guess,x,y):
     return popt[1],  popt[2]
 
 
-def pixel_cutout(image,size,xguess, yguess, name1, name2,save = False):
+def pixel_cutout(image,size,xguess, yguess, name1='none', name2='none',save = False):
     size = float(size)
     xguess = float(xguess)
     yguess = float(yguess)
@@ -651,7 +651,7 @@ def pixel_cutout(image,size,xguess, yguess, name1, name2,save = False):
 
     return output
 
-def loop_pixcut(image,size,center_guess,imslice,save = False):
+def loop_pixcut(image,size,center_guess,imslice=0,save = False):
     """ Loops over same slice cuts out the specified spots. For example, Dm spot
         have 4 location in any given slice which means it will cut out 4 images. It
         then will will average the cut out images to produce 1 averaged image.
@@ -665,16 +665,19 @@ def loop_pixcut(image,size,center_guess,imslice,save = False):
         box_img - average image for same slice. 
     """
     box_img = []
-    location = "psf_fitting/spot_cutout/" 
     spot = 0
-    spoti = ['A','B','C','D']
-
+    
     for i in center_guess:
-        name1 = pname(location,'b_opt'+'_sat'+spoti[spot]+'s'+ str(imslice),'.fits')
-        name2 = pname(location,'a_opt'+'_sat'+spoti[spot]+'s'+ str(imslice),'.fits')
-        #print(i)+'s'+ str(imslice)
-        #print(np.shape(i))
-        cutout = pixel_cutout(image,size,i[0],i[1],name1,name2,save)
+        print(i[0],i[1])
+        if save == True:
+            location = "psf_fitting/spot_cutout/"  # location where you want to save images
+            spoti = ['A','B','C','D']
+            name1 = pname(location,'b_opt'+'_sat'+spoti[spot]+'s'+ str(imslice),'.fits')
+            name2 = pname(location,'a_opt'+'_sat'+spoti[spot]+'s'+ str(imslice),'.fits')
+            cutout = pixel_cutout(image,size,i[0],i[1],name1,name2,save)
+        else:
+            cutout = pixel_cutout(image,size,i[0],i[1])
+
         box_img.append(cutout)
         spot +=1
     box_img = (np.sum(box_img,axis=0))/len(box_img)
@@ -700,13 +703,13 @@ def slice_loop(path,fnum,size,center_guess,save = False):
     center = open_img(center_guess)
     #print(np.shape(image))
     box = []
-    index = 0
+    imslice = 0
     for img in image:
-        cent = center[index]
+        cent = center[imslice]
         #print(np.shape(center))
-        ave_cut = loop_pixcut(img,size,cent,index,save)
+        ave_cut = loop_pixcut(img,size,cent,imslice,save)
         box.append(ave_cut)
-        index +=1
+        imslice +=1
     box = np.array(box)
     print('before vstatck', np.shape(box))
     #box_slice = np.vstack((box[:,:,:]))
