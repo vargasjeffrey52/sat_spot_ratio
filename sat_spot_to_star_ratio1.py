@@ -13,6 +13,8 @@ import glob
 import os
 from scipy import ndimage
 from scipy import optimize
+import imageio # used to create gif.
+from itertools import zip_longest
 
 #----------------------------------------------------------------------------
 #________________________Path and directories and global parameters_____________
@@ -24,9 +26,23 @@ hband_path = "saved/Hband/H_reduced_data/Hband/S20130211S0"
 
 
 def multiple_files(path):
-    # returns a list of files path. paths correpond to the path of Band data
+    """ creates a list of reduce data path.
+    Args:
+        path - is the path where the reduce files are located + their common name
+            ex) "C:/Python34/GPIcode/saved/Hband/H_reduced_data/Hband/S20130211S0"
+            loaction = C:/Python34/GPIcode/saved/Hband/H_reduced_data/Hband/
+            common name = S20130211S0
+    Return: 
+        list of path where reduced are located.
+    """
+
     fyles = sorted(glob.glob(path + '*.fits'))
-    #print ( 'number of fits files: ', str(len(fyles)))
+    if not fyles:
+        print('LIST OF PATH IS EMPTY: ', fyles)
+        print('please specify full path + common file name')
+        print('ex) "C:/Python34/GPIcode/saved/Hband/H_reduced_data/Hband/S20130211S0" ')
+        print(fyles)
+
     return fyles
 
 
@@ -45,8 +61,8 @@ def open_txt(path):
 
 def file_number(fyle): # enumerates the files for any band SUB FUCNTION
     #fyle = multiple_files(path)[index]
-    trash1 = fyle.split("S0",1)
-    fyle_number = trash1[1].split("_")[0]
+    trash1 = fyle.split("\\",1)
+    fyle_number = trash1[1].split(".")[0]
 
     return fyle_number
    
@@ -617,7 +633,7 @@ def return_pos(im, xy_guess,x,y):
     """ x,y - is the same coordinate as pixel cutout after adding xc and yc. this is to keep it relative
         to the size of original image
     """
-    popt, pcov = optimize.curve_fit(twoD_Gaussian, (x, y), im.ravel(), p0 = p0)
+    popt, pcov = optimize.curve_fit(twoD_Gaussian, (x, y), im.ravel(), p0 = p0,maxfev=15000000)
     #print(popt)
     # xy - pad : is a constant to convert the coordinate back to the original image coordinate frame,
     # in my code i already added the contant term pad --> xc, yc therefore no need to add pad
@@ -627,7 +643,7 @@ def return_pos(im, xy_guess,x,y):
     return popt[1],  popt[2]
 
 
-def pixel_cutout(image,size,xguess, yguess, name1='none', name2='none',save = False):
+def pixel_cutout(image,size,xguess, yguess):#, name2='none',save = False):
     """ combines the above functions in this section. Used to create box cutout centered at 
         the specified spot.
     Args:
@@ -651,58 +667,118 @@ def pixel_cutout(image,size,xguess, yguess, name1='none', name2='none',save = Fa
     output = pixel_map(image,x,y)
     xc,yc = return_pos(output, (xguess,yguess), x,y)
     
-    if save == True:
+    #if save == True:
         # image before center optimization
-        write = pf.writeto(name1, output,clobber = True)
+        #write = pf.writeto(name1, output,clobber = True)
 
     x,y = gen_xy(size)
     x += (xc-size/2.)
     y += (yc-size/2.)
     output = pixel_map(image,x,y)
 
-    if save == True:
+
+    r = np.sqrt((x-xc)**2 + (y-yc)**2)
+    output[np.where(r>size/2)] = np.nan
+    #output = np.nan_to_num(output)
+
+
+
+    #if save == True:
         # image after center optimization
-        write = pf.writeto(name2, output,clobber = True)
+        #write = pf.writeto(name2, output,clobber = True)
 
     return output
 
-def loop_pixcut(image,size,center_guess,imslice=0,save = False):
-    """ Loops over same slice cuts out the specified spots. For example, Dm spot
-        have 4 location in any given slice which means it will cut out 4 images. It
-        then will will average the cut out images to produce 1 averaged image.
-    Args:
-        image - a slice of the original data cube
-        size  - the size of the sides of the box cutout
-        center_guess - (x_i,y_i) coordinate array
-        imslice - used to name and indicate which slice is the cut being don on
-        save  - option to save image cutout with initial guess and after
-                center has been optimized
-    Return:
-        box_img - average image for same slice. 
-    """
-    box_img = []
-    spot = 0
-    
-    for i in center_guess:
 
+
+def loop_pixcut(image,size,centdm,centsat,fname,index=0,save=False,scale=[],residuals=[]):
+
+    dm_img, sat_img = [], []
+    spotnum = 0
+
+
+#=====================plotting procedure============================
+    if save == True:
+        fig = plt.figure(figsize=(10,10))
+        fig.suptitle(fname+'               slice='+str(index),fontsize=25)
+        fig.subplots_adjust(wspace=0.2, hspace=0.3)
+
+    if np.shape(centsat) == (1,2):
+        spotname = "STAR"
+    else:
+        spotname = "SAT spot"
+# ==================================================================
+
+    
+    for i,j in zip_longest(centdm,centsat):
+
+        cutdm = pixel_cutout(image,size,i[0],i[1])
+        dm_img.append(cutdm)
+
+        if j != None:
+            cutsat = pixel_cutout(image,size,j[0],j[1])
+            sat_img.append(cutsat)
+        
+        #==================plotting procedure==================
         if save == True:
-            location = "psf_fitting/spot_cutout/"  # location where you want to save images
-            spoti = ['A','B','C','D']
-            name1 = pname(location,'b_opt'+'_sat'+spoti[spot]+'s'+ str(imslice),'.fits')
-            name2 = pname(location,'a_opt'+'_sat'+spoti[spot]+'s'+ str(imslice),'.fits')
-            cutout = pixel_cutout(image,size,i[0],i[1],name1,name2,save)
-        else:
-            cutout = pixel_cutout(image,size,i[0],i[1])
 
-        box_img.append(cutout)
-        spot +=1
+            dm = plt.subplot(4,3,1+spotnum)
+            dm.imshow(cutdm,interpolation='nearest',cmap='gnuplot2')
+            dm.set_title('DM spot')
 
-    box_img = (np.sum(box_img,axis=0))/len(box_img)
+            if j != None:
+                sat = plt.subplot(4,3,2+spotnum)
+                sat.imshow(cutsat,interpolation='nearest',cmap='gnuplot2')
+                sat.set_title(spotname)
+            spotnum +=3
+            # ===================================================
+
+    dm_img = (np.sum(dm_img,axis=0))/len(dm_img)
+    sat_img = (np.sum(sat_img,axis=0))/len(sat_img)
+    if np.shape(centsat) == (1,2):
+        scalef = optimz(sat_img,dm_img)
+        resid =(scalef*sat_img) - dm_img
+
+    else:
+        scalef = optimz(dm_img,sat_img)
+        resid =(scalef*dm_img) - sat_img
+    scale.append(scalef)
+    residuals.append(resid)
+
+    # ==========================plotting procedure======================
+    if save == True:
+        ave_dm = plt.subplot(4,3,3)
+        ax3 = ave_dm.imshow(dm_img,interpolation='nearest',cmap='gnuplot2')
+        fig.colorbar(ax3)
+        ave_dm.set_title('Average DM')
+
+        ave_sat = plt.subplot(4,3,6)
+        ax2 = ave_sat.imshow(sat_img,interpolation='nearest',cmap='gnuplot2')
+        fig.colorbar(ax2)
+        ave_sat.set_title('Average '+ spotname)
+
+        rsd = plt.subplot(4,3,9)
+        ax = rsd.imshow(resid/np.nanmax(sat_img),interpolation='nearest',cmap='gnuplot2')
+        fig.colorbar(ax)
+        rsd.set_title("Residuals")
+
+        scale_plot = plt.subplot(4,3,12)
+        scale_plot.plot(scale, marker='.') #Line with small markers
+        scale_plot.plot(index, scale[index], marker='o', markersize=10)
+        plt.title("scale factor",fontsize=16)
+        plt.savefig("C:/Python34/GPIcode/psf_fitting/pngs/atest/"+fname+'slice'+str(index).zfill(2)+'.png', bbox_inches='tight')
+    plt.close('all')
+    # ==================================================================
+
+
+    return dm_img,sat_img,scale,residuals
+
+
+
+
+
+def slice_loop(path,fnum,size,center_dm,center_sat,save = False):
     
-    return box_img
-
-
-def slice_loop(path,fnum,size,center_guess,save = False):
     """ loops over all slices and creates an average image for the specified spots at each 
         wavelength slice. At the end there is a total of 37 averaged images.
     Args: 
@@ -714,184 +790,46 @@ def slice_loop(path,fnum,size,center_guess,save = False):
                 center has been optimized
     Return: 
         box - data cube with 37 averaged images.
+        filename - the name of the file which is being averaged.
     """
+    info = get_info1(path,fnum) # fnum is the index fits file.
+    image = info[1]
+    filename = info[2]
 
-    image = get_info1(path,fnum)[1] # fnum is the index fits file.
-    center = open_img(center_guess)
-    box = []
+    center_dm = open_img(center_dm)
+    center_sat = open_img(center_sat)
+
+    ave_dm , ave_sat , scale , residuals = [],[],[],[]
     imslice = 0
 
     for img in image:
-        cent = center[imslice]
-        ave_cut = loop_pixcut(img,size,cent,imslice,save)
-        box.append(ave_cut)
+        centdm = center_dm[imslice]
+        centsat = center_sat[imslice]
+        data = loop_pixcut(img,size,centdm,centsat,filename,imslice,save,scale,residuals)
+
+        ave_dm.append(data[0])
+        ave_sat.append(data[1])
+        scale = data[2]
+        residuals = data[3]
         imslice +=1
 
-    box = np.array(box)
-    print('shape of cube ave image', np.shape(box))
+    ave_dm = np.array(ave_dm)
+    ave_sat = np.array(ave_sat)
+    #print(scale)
+    #print(np.shape(scale))
+
+    #--------------------------- Creating gif and removing pngs ------------------------
+    if save == True:
+        location='C:/Python34/GPIcode/psf_fitting/pngs/atest/'
+        cmd = 'magick -delay 40 -loop 0 '+location+filename+'*.png '+location+filename+'.gif'
+        os.system(cmd)
+        pngs = glob.glob(location+filename+'*.png')
+        [os.remove(png) for png in pngs]
+    #------------------------------------------------------------------------------------
+    
    
-    return box       
+    return scale,filename
 
-
-
-
-# approx center path
-#center_guess = "C:/Python34/GPIcode/saved/Hband/approx_center_C_Hband.txt"
-center_dm = "C:/Python34/GPIcode/psf_fitting/guess_center/Hdm_center.fits"
-center_sat = "C:/Python34/GPIcode/psf_fitting/guess_center/Hsat_center.fits"
-
-def main_loop():
-    center_guess = center_dm
-    #center_guess = center_sat
-    path = hband_path
-    fnum = 5
-    size = 20
-    save = True
-    loop = slice_loop(path,fnum,size,center_guess,save)
-    write = pf.writeto("C:/Python34/GPIcode/psf_fitting/spot_cutout/c_dmcut_ave.fits",loop,clobber =True)
-    return np.shape(loop)
-
-
-
-#======================= cut out images ==============================
-
-def pname(path,name,ftype):
-    return path + name + ftype
-
-def sorttime(path):
-    fyles = sorted(glob.glob(path + '*.fits'))
-    #print(fyles)
-    fyles.sort(key=os.path.getmtime)
-    #print(fyles)
-    return fyles
-
-def cut_imshow(path):
-    images = multiple_files(path)
-    print(images)
-
-def main_show():
-    dmA = sorttime("C:/Python34/GPIcode/psf_fitting/spot_cutout/a_opt_dmA")
-    dmB = sorttime("C:/Python34/GPIcode/psf_fitting/spot_cutout/a_opt_dmB")
-    dmC = sorttime("C:/Python34/GPIcode/psf_fitting/spot_cutout/a_opt_dmC")
-    dmD = sorttime("C:/Python34/GPIcode/psf_fitting/spot_cutout/a_opt_dmD")
-
-    satA = sorttime("C:/Python34/GPIcode/psf_fitting/spot_cutout/a_opt_satA")
-    satB = sorttime("C:/Python34/GPIcode/psf_fitting/spot_cutout/a_opt_satB")
-    satC = sorttime("C:/Python34/GPIcode/psf_fitting/spot_cutout/a_opt_satC")
-    satD = sorttime("C:/Python34/GPIcode/psf_fitting/spot_cutout/a_opt_satD")
-
-    av_sat = "C:/Python34/GPIcode/psf_fitting/spot_cutout/c_satcut_ave.fits"
-    av_dm = "C:/Python34/GPIcode/psf_fitting/spot_cutout/c_dmcut_ave.fits"
-
-    ave_sat = open_img(av_sat)
-    ave_dm  = open_img(av_dm)
-
-    index = 0
-    scale = optimz(ave_dm,ave_sat)
-
-    while index != len(dmA):
-
-        #print(index)
-        #print(dmA[index])
-        da = open_img(dmA[index])
-        #print(da)
-        db = open_img(dmB[index])
-        dc = open_img(dmC[index])
-        dd = open_img(dmD[index])
-
-        sa = open_img(satA[index])
-        #print(sa)
-        sb = open_img(satB[index])
-        sc = open_img(satC[index])
-        sd = open_img(satD[index])
-
-        # ----------------------
-
-        fig = plt.figure(figsize=(10,10))
-        fig.suptitle('slice='+str(index))
-        dm1 = plt.subplot(4,3,1)
-        dm1.imshow(da,interpolation='nearest',cmap='gnuplot2')
-        #plt.axis('off')
-
-        dm2 = plt.subplot(4,3,4)
-        dm2.imshow(db,interpolation='nearest',cmap='gnuplot2')
-        #plt.axis('off')
-
-        dm3 = plt.subplot(4,3,7)
-        dm3.imshow(dc,interpolation='nearest',cmap='gnuplot2')
-        #plt.axis('off')
-
-        dm4 = plt.subplot(4,3,10)
-        dm4.imshow(dd,interpolation='nearest',cmap='gnuplot2')
-        #plt.axis('off')
-        # --------------
-
-        sat1 = plt.subplot(4,3,2)
-        sat1.imshow(sa,interpolation='nearest',cmap='gnuplot2')
-        #plt.axis('off')
-
-        sat2 = plt.subplot(4,3,5)
-        sat2.imshow(sb,interpolation='nearest',cmap='gnuplot2')
-        #plt.axis('off')
-
-        sat3 = plt.subplot(4,3,8)
-        sat3.imshow(sc,interpolation='nearest',cmap='gnuplot2')
-        #plt.axis('off')
-
-        sat4 = plt.subplot(4,3,11)
-        sat4.imshow(sd,interpolation='nearest',cmap='gnuplot2')
-        #plt.axis('off') 
-
-        # ----------------------
-        ave_sat = open_img(av_sat)[index]
-        #print (np.shape(ave_sat))
-        ave_dm  = open_img(av_dm)[index]
-
-        avesat = plt.subplot(4,3,3)
-        ax1= avesat.imshow(ave_sat,interpolation='nearest',cmap='gnuplot2')
-        fig.colorbar(ax1)
-        #plt.axis('off')
-
-        avedm = plt.subplot(4,3,6)
-        ax2 = avedm.imshow(ave_dm,interpolation='nearest',cmap='gnuplot2')
-        fig.colorbar(ax2)
-        #plt.axis('off')
-
-        resid = plt.subplot(4,3,9)
-        
-        ax = resid.imshow(((scale[index]*ave_dm) - ave_sat),interpolation='nearest',cmap='gnuplot2')
-        fig.colorbar(ax)
-
-
-
-        
-
-        plt.subplots_adjust(wspace=0.1,hspace=0.1)
-
-
-        #plt.tight_layout()
-        #plt.show() 
-        #print(t)
-        fig.savefig('calibrate'+ str(index)+'.png', bbox_inches='tight')  
-        plt.close('all')   
-
-
-
-   
-
-        index +=1
-        #print(t)
-    #plt.tight_layout()
-    #plt.show()
-
-    plt.close('all')
-
-    return dmA
-
-
-
-
-# ---------------------------------------------------------
 
 def minimize_psf(scale, ave_dm, ave_sat): 
     """ Simply minimize residuals
@@ -908,34 +846,132 @@ def minimize_psf(scale, ave_dm, ave_sat):
 
 def optimz(ave_dm, ave_sat):
 
-    scl = []
-    for i in range(37):
-        #scale = optimz(j,i)
-        #print(i,j)
+    guess =  np.nanmax(ave_sat) / np.nanmax(ave_dm)
+    result = optimize.minimize(minimize_psf, guess, args=(ave_dm, ave_sat), method = 'Nelder-Mead') 
+    scale = result.x[0]
+    #if result.success == False: 
+    #    print( 'this is a warning')
+    #    print(result)       
+    #scl.append(scale)
+    return scale
 
-        
+def open_img(file_location): #opens the matrix containing image
+    hdu = pf.open(file_location)
+    hdr = hdu[0].header
+    #print(hdr)
+    img = hdu[0].data
+    return img
 
-        guess =  np.nanmax(ave_sat[i]) / np.nanmax(ave_dm[i])
-        guess = np.float64(1)
-        print(type(ave_dm[i,0,0]))
-        result = optimize.minimize(minimize_psf, guess, args=(np.float64(ave_dm[i]), np.float64(ave_sat[i]))) 
-        scale = result.x[0]
-        print(guess)
-        print(result)
-        print(scale)
-        scl.append(scale)
+#def slice_loop(path,fnum,size,center_dm,center_sat,save = False,sname='sat'):
+
+def main_loopit(size,fstart,fstop,save=False):
+    #path1 = "saved/Hband/H_reduced_data/Hband/S20130211S0"
+    path1 = "C:/Users/varga_000/Documents/GPI/gpi_pipeline_1.3.0_source/gpi_pipeline_1.3.0_r3839M_source/data/Reduced/k1/S20130212S0"
+    # coronograph files 403 - 436, ie 0-34 , No coronograph 440 - 455 , i.e 34-50
+    #fnum = 34
+    scales = []
+    #size = 20
+    #center_dm = "C:/Python34/GPIcode/psf_fitting/guess_center/Hdm_center.fits"
+    center_dm = "C:/Python34/GPIcode/psf_fitting/guess_center/dmk1_center.fits"
+    if fstart == 0:
+        #spot = "C:/Python34/GPIcode/psf_fitting/guess_center/Hsat_center.fits" # SAT CENTER
+        spot = "C:/Python34/GPIcode/psf_fitting/guess_center/satk1_center.fits"
+    else:
+        #spot = 'C:/Python34/GPIcode/psf_fitting/guess_center/star_center.fits' #STAR center
+        spot = "C:/Python34/GPIcode/psf_fitting/guess_center/stark1_center.fits"
+
+    print(spot)
+    #scale_path1 = "C:/Python34/GPIcode/psf_fitting/scale_factors/"
+    #save = False 
+    for fnum in range(fstart,fstop):
+        scale = slice_loop(path1,fnum,size,center_dm,spot,save)
+        scales.append(scale[0])
+        #write = pf.writeto(scale_path+scale[1].zfill(2)+'.fits', np.array(scale[0]),clobber = True)
+        #write = np.savetxt(scale_path+str(scale[1]).zfill(2)+'.txt',np.array(scale[0]))
+        #print(t)
+    return scales
+
+def main_loopf():
+    svpath = "C:/Python34/GPIcode/psf_fitting/scale_factors/scale_r/"
+    size = 8
+
+    while size <= 8:
+        cname = svpath+"Hc_size"+str(size).zfill(2)+'.txt'
+        ncname = svpath+"Hnc_size"+str(size).zfill(2)+'.txt'
+        #print(ncname)
+        cscale = main_loopit(size,0,34,save=False)
+        ncscale = main_loopit(size,34,50,save=False)
+
+        np.savetxt(cname,cscale)
+        np.savetxt(ncname,ncscale)
 
 
-    return scl
+        size +=1
 
 
+def scale_plot():
+    cscale = np.loadtxt("C:/Python34/GPIcode/psf_fitting/scale_factors/scale_r/Hc_size08.txt")
+    ncscale = np.loadtxt("C:/Python34/GPIcode/psf_fitting/scale_factors/scale_r/Hnc_size08.txt")
 
+    cmean = np.nanmean(cscale,axis=0)
+    ncmean = np.nanmean(ncscale,axis=0)
+    cstd = np.nanstd(cscale,axis=0)
+    
+    ncstd = np.nanstd(ncscale,axis=0)
+    ratio = cmean*ncmean
+    previous = np.zeros(37) + 2.03656e-4
+    mp = previous -0.10895492e-4 
+    pp = previous +0.10895492e-4 
 
+    meanc = [np.random.normal(loc=meani, scale=stdi, size=int(1e6)) for meani,stdi in zip(cmean,cstd)]
+    meannc = [np.random.normal(loc=meani, scale=stdi, size=int(1e6)) for meani,stdi in zip(ncmean,ncstd)]
+    
+    scale = np.multiply(meanc,meannc)
+    scalestd = np.nanstd(scale,axis=1)
+    scalemean = np.nanmean(scale,axis=1)
+    #print(np.shape(scalestd),'std shape')
+    #scl_std = [i/(scalestd**2) for i in scale]
+    #print(np.shape(scl_std))
+    div = scalemean/(scalestd**2)
+    var = scalestd**(-2)
 
-def main_optimz():
-    ave_sat = open_img("C:/Python34/GPIcode/psf_fitting/spot_cutout/c_satcut_ave.fits")
-    ave_dm = open_img("C:/Python34/GPIcode/psf_fitting/spot_cutout/c_dmcut_ave.fits")
-    print(np.shape(ave_dm))
+    weightmean = np.sqrt(np.sum(var)*(np.sum(div)))
 
-    print (optimz(ave_dm,ave_sat))
+    #weightmean = np.sqrt(((1/np.sum(scalestd**(-2)))*(np.sum(np.divide(scalemean,scalestd**2)))))
+    print(scalemean,'mean')
+    print(scalestd,'std')
+    print(weightmean,'wmean')
+    print(np.shape(weightmean))
+    print(t)
+
+   
+
+    
+    plt.figure()
+    f, axarr = plt.subplots(3, sharex=True)
+    axarr[0].set_title('Ratio')
+
+    axarr[0].plot(cscale[0],'b', alpha=0.2,label='sat/dm scale')
+    for i in cscale:
+        axarr[0].plot(i,'b',alpha=0.2)
+    axarr[0].plot(cmean,'k',label='mean scale')
+    axarr[0].errorbar(np.arange(37),cmean,yerr= cstd, color='k')
+    axarr[0].legend(loc='lower right')
+    axarr[0].set_ylabel('SAT/DM')
+
+    for j in ncscale:
+        axarr[1].plot(j,'r',alpha=0.2)
+    axarr[1].plot(ncscale[0],'r', alpha=0.2,label='dm/star scale')
+    axarr[1].plot(ncmean,'k',label='mean scale')
+    axarr[1].errorbar(np.arange(37),ncmean,yerr= ncstd, color='k')
+    axarr[1].set_ylabel('DM/STAR')
+    axarr[1].legend(loc='upper right')
+
+    axarr[2].errorbar(np.arange(37),scalemean,yerr=scalestd,color='g',label="sat/star")
+    axarr[2].plot(previous,'r',label="previous")
+    axarr[2].plot(mp,'r--')
+    axarr[2].plot(pp,'r--')
+    axarr[2].legend(loc='upper right')
+    plt.show()
+    return plt.close('all')
 
