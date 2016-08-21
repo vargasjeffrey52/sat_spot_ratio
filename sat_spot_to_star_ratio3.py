@@ -7,7 +7,11 @@ from scipy import optimize
 import multiprocessing as mp
 import numpy.fft as fft
 
+<<<<<<< HEAD
 def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice = 0, last_slice = 36, high_pass = False, box_size = 8, nudgexy = False, save_gif = False):
+=======
+def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice = 0, last_slice = 37, high_pass = False, box_size = 8, nudgexy = False, save_gif = False):
+>>>>>>> a38c4d444a1b4de55c0cd2b899cd036731ee8119
     """
     Main function for DM spot data
 
@@ -18,6 +22,7 @@ def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice
         dm_pos1 - (37, 4, 2) array of dm spot positions in star/dm images
         dm_pos2 - (37, 4, 2) array of dm spot positions in dm/sat images (should be the same as dm_pos1)
         sat_pos - (37, 4, 2) array of sat spot positions in dm/sat images
+<<<<<<< HEAD
 
     Returns:
         wl - wavelength axis
@@ -34,23 +39,49 @@ def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice
     list_sat = np.loadtxt(list_sat, dtype=str)
     n_sat = np.size(list_sat)
 
+=======
+
+    Returns:
+        wl - wavelength axis
+        star_dm_ratio - star to dm ratio (n, 37) array
+        dm_sat_ratio - dm to sat ratio (n, 37) array
+    """
+
+    #Convert star_pos into a (37, 2) array for reasons
+    star_pos = np.tile(star_pos, (37, 1))
+
+    list_dm = np.loadtxt(list_dm, dtype=str)
+    n_list_dm = len(list_dm)
+    list_sat = np.loadtxt(list_sat, dtype=str)
+    n_list_sat = len(list_sat)
+
+>>>>>>> a38c4d444a1b4de55c0cd2b899cd036731ee8119
     #Check all files have same wavelength solution
     header = fits.getheader(list_dm[0], 1)
     wl = (np.arange(37)*header['CD3_3']) + header['CRVAL3']
     
+<<<<<<< HEAD
     for i in range(0, n_dm):
+=======
+    for i in range(0, n_list_dm):
+>>>>>>> a38c4d444a1b4de55c0cd2b899cd036731ee8119
         header = fits.getheader(list_dm[i], 1)
         if np.sum(wl - ((np.arange(37)*header['CD3_3']) + header['CRVAL3'])) != 0:
             print 'Wavelength axes do not match'
             return 0
 
+<<<<<<< HEAD
     for i in range(0, n_sat):
+=======
+    for i in range(0, n_list_sat):
+>>>>>>> a38c4d444a1b4de55c0cd2b899cd036731ee8119
         header = fits.getheader(list_sat[i], 1)
         if np.sum(wl - ((np.arange(37)*header['CD3_3']) + header['CRVAL3'])) != 0:
             print 'Wavelength axes do not match'
             return 0
 
     #This will be parallelized
+<<<<<<< HEAD
     star_dm_ratio = np.zeros((n_dm, 37), dtype=np.float64) * np.nan
     dm_sat_ratio = np.zeros((n_sat, 37), dtype=np.float64) * np.nan
 
@@ -71,10 +102,28 @@ def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice
 
     output = [p.get() for p in result2]
     for i in range(0, n_sat):
+=======
+    star_dm_ratio = np.zeros((n_list_dm, 37), dtype=np.float64) * np.nan
+    dm_sat_ratio = np.zeros((n_list_dm, 37), dtype=np.float64) * np.nan
+
+    pool = mp.Pool()
+    kw = {'first_slice': first_slice, 'last_slice': last_slice, 'high_pass': high_pass, 'box_size': box_size, 'nudgexy': nudgexy, 'save_gif': save_gif}
+    result1 = [pool.apply_async(slice_loop, (i, list_dm[i], star_pos, dm_pos1, 'ASU', 'DM spot'), kw) for i in range(0, n_list_dm)]  
+    kw = {'first_slice': first_slice, 'last_slice': last_slice, 'high_pass': high_pass, 'box_size': box_size, 'nudgexy': nudgexy, 'save_gif': save_gif}
+    result2 = [pool.apply_async(slice_loop, (i, list_sat[i], dm_pos2, sat_pos, 'DM spot', 'Sat spot'), kw) for i in range(0, n_list_sat)]  
+    
+    output = [p.get() for p in result1]
+    for i in range(0, n_list_dm):
+        star_dm_ratio[output[i][0]] = output[i][1]
+
+    output = [p.get() for p in result2]
+    for i in range(0, n_list_dm):
+>>>>>>> a38c4d444a1b4de55c0cd2b899cd036731ee8119
         dm_sat_ratio[output[i][0]] = output[i][1]
 
     pool.close()
     pool.join()
+<<<<<<< HEAD
 
     #Also combine all dm and sat images together and run again
     avg_dm_cube = np.zeros((n_dm, 37, 281, 281), dtype=np.float64)
@@ -91,8 +140,9 @@ def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice
     avg_name = os.path.basename(list_sat[0]).replace('.fits', '_avg.fits')
     index, avg_dm_sat_ratio = slice_loop(0, None, dm_pos2, sat_pos, 'DM spot', 'Sat spot', first_slice = first_slice, last_slice = last_slice, high_pass = high_pass, box_size = box_size, nudgexy = nudgexy, save_gif = save_gif, avg_cube = avg_sat_cube, avg_name = avg_name)
 
+=======
 
-    return wl, star_dm_ratio, dm_sat_ratio, avg_star_dm_ratio, avg_dm_sat_ratio
+    return wl, star_dm_ratio, dm_sat_ratio
 
 
 def ratio_companion():
@@ -101,8 +151,34 @@ def ratio_companion():
     foo = 1
 
     return 0
+>>>>>>> a38c4d444a1b4de55c0cd2b899cd036731ee8119
 
+    return wl, star_dm_ratio, dm_sat_ratio, avg_star_dm_ratio, avg_dm_sat_ratio
 
+def slice_loop(index, file, xy1, xy2, name1, name2, first_slice = 0, last_slice = 37, high_pass = False, box_size = 8, nudgexy = False, save_gif = False):
+
+<<<<<<< HEAD
+def ratio_companion():
+    #Main function for companion datasets
+    #Will have to accept a stellar spectrum
+    foo = 1
+
+    return 0
+=======
+    """
+        First object should be brighter than the second, xy1 = star, xy2 = dm, xy1 = dm, xy2 = sat.
+    """
+
+    stamp1 = np.zeros((37, box_size+4, box_size+4), dtype=np.float64)
+    stamp2 = np.zeros((37, box_size+4, box_size+4), dtype=np.float64)
+    scales = np.zeros(37, dtype=np.float64) * np.nan
+>>>>>>> a38c4d444a1b4de55c0cd2b899cd036731ee8119
+
+    cube = fits.getdata(file)
+    header = fits.getheader(file, 1)
+    base_name = os.path.basename(file)
+
+<<<<<<< HEAD
 def slice_loop(index, file, xy1, xy2, name1, name2, first_slice = 0, last_slice = 36, high_pass = False, box_size = 8, nudgexy = False, save_gif = False, avg_cube = None, avg_name = None):
 
     """
@@ -125,6 +201,12 @@ def slice_loop(index, file, xy1, xy2, name1, name2, first_slice = 0, last_slice 
     
 
     for i in range(first_slice, last_slice+1):
+=======
+    stamp_cm = 'gnuplot2'
+    
+
+    for i in range(first_slice, last_slice):
+>>>>>>> a38c4d444a1b4de55c0cd2b899cd036731ee8119
 
         if save_gif is True:
             fig = plt.figure(figsize=(9,10))
@@ -139,7 +221,11 @@ def slice_loop(index, file, xy1, xy2, name1, name2, first_slice = 0, last_slice 
                 stamp[i] = extract_stamp(im, xy, box_size)
                 if save_gif is True:
                     ax = plt.subplot(4, 3, plt_pos[0])
+<<<<<<< HEAD
                     ax.imshow(radial_mask(stamp[i], box_size), interpolation = 'nearest', cmap = stamp_cm)
+=======
+                    ax.imshow(stamp[i], interpolation = 'nearest', cmap = stamp_cm)
+>>>>>>> a38c4d444a1b4de55c0cd2b899cd036731ee8119
                     ax.set_title(name, fontsize = 10)
                     ax.xaxis.set_ticklabels([])
                     ax.yaxis.set_ticklabels([])
@@ -148,7 +234,11 @@ def slice_loop(index, file, xy1, xy2, name1, name2, first_slice = 0, last_slice 
                     this_stamp = extract_stamp(im, xy[j], box_size)
                     if save_gif is True:
                         ax = plt.subplot(4, 3, plt_pos[0]+(j*3))
+<<<<<<< HEAD
                         ax.imshow(radial_mask(this_stamp, box_size), interpolation = 'nearest', cmap = stamp_cm)
+=======
+                        ax.imshow(this_stamp, interpolation = 'nearest', cmap = stamp_cm)
+>>>>>>> a38c4d444a1b4de55c0cd2b899cd036731ee8119
                         ax.set_title(name+' #'+str(j), fontsize = 10)
                         ax.xaxis.set_ticklabels([])
                         ax.yaxis.set_ticklabels([])
@@ -157,7 +247,11 @@ def slice_loop(index, file, xy1, xy2, name1, name2, first_slice = 0, last_slice 
 
             if save_gif is True:
                 ax = plt.subplot(4, 3, plt_pos[1])
+<<<<<<< HEAD
                 cb = ax.imshow(radial_mask(stamp[i], box_size), interpolation = 'nearest', cmap = stamp_cm)
+=======
+                cb = ax.imshow(stamp[i], interpolation = 'nearest', cmap = stamp_cm)
+>>>>>>> a38c4d444a1b4de55c0cd2b899cd036731ee8119
                 cb = fig.colorbar(cb)
                 cb.ax.tick_params(labelsize = 8)
                 ax.set_title('Average '+name, fontsize = 10)
@@ -165,6 +259,7 @@ def slice_loop(index, file, xy1, xy2, name1, name2, first_slice = 0, last_slice 
                 ax.yaxis.set_ticklabels([])
 
         #Compute scale factor here
+<<<<<<< HEAD
         scales[i], dx, dy, shifted_stamp1 = find_scale(stamp1[i], stamp2[i], box_size, nudgexy = nudgexy)
         if nudgexy is True:
             stamp1[i] = shifted_stamp1
@@ -182,30 +277,60 @@ def slice_loop(index, file, xy1, xy2, name1, name2, first_slice = 0, last_slice 
                 ax.annotate('dx = '+dx_str, xy=(0.2,0.85), xycoords='axes fraction', fontsize=8)
                 ax.annotate('dy = '+dy_str, xy=(0.2,0.80), xycoords='axes fraction', fontsize=8)
 
+=======
+        scales[i] = find_scale(stamp1[i], stamp2[i], nudgexy = False)
+
+        if save_gif is True:
+            ax = plt.subplot(4, 3, 9)
+            cb = ax.imshow(stamp1[i]*scales[i], interpolation = 'nearest', cmap = stamp_cm)
+            cb = fig.colorbar(cb)
+            cb.ax.tick_params(labelsize = 8)
+            ax.set_title(name1+' x '+str(scales[i]), fontsize=10)
+>>>>>>> a38c4d444a1b4de55c0cd2b899cd036731ee8119
             ax.xaxis.set_ticklabels([])
             ax.yaxis.set_ticklabels([])
 
             ax = plt.subplot(4, 3, 12)
+<<<<<<< HEAD
             cb = ax.imshow(radial_mask(((stamp1[i]*scales[i]) - stamp2[i])/np.nanmax(stamp1[i]*scales[i]), box_size), interpolation = 'nearest', cmap = 'bwr', vmin = -0.1, vmax = 0.1)
             cb = fig.colorbar(cb)
 
+=======
+            cb = ax.imshow(((stamp1[i]*scales[i]) - stamp2[i])/np.nanmax(stamp2[i]), interpolation = 'nearest', cmap = 'bwr', vmin = -0.1, vmax = 0.1)
+            cb = fig.colorbar(cb)
+>>>>>>> a38c4d444a1b4de55c0cd2b899cd036731ee8119
             cb.ax.tick_params(labelsize = 8)
             ax.set_title('Fract. Resid.', fontsize=10)
             ax.xaxis.set_ticklabels([])
             ax.yaxis.set_ticklabels([])
 
+<<<<<<< HEAD
             fig.subplots_adjust(wspace=0.10, hspace=0.15)
             plt.savefig('Frames-'+base_name.replace('.fits','')+'-'+str(i).zfill(2)+'.png', dpi = 200, bbox_inches='tight')
+=======
+
+            fig.subplots_adjust(wspace=0.10, hspace=0.15)
+            plt.savefig('Frames-'+base_name.replace('.fits','')+'-'+str(i).zfill(2)+'.png', dpi = 250, bbox_inches='tight')
+>>>>>>> a38c4d444a1b4de55c0cd2b899cd036731ee8119
             plt.close('all')
 
     #Create gif here
     if save_gif is True:
+<<<<<<< HEAD
         str_box = 's'+str(box_size).zfill(2)
         
         if high_pass is not False:
             str_hp = 'hp'+str(high_pass).zfill(2)
         else:
             str_hp = 'hp00'
+=======
+        str_box = 's'+str(box_size)
+        
+        if high_pass is not False:
+            str_hp = 'hp'+str(high_pass)
+        else:
+            str_hp = 'hp0'
+>>>>>>> a38c4d444a1b4de55c0cd2b899cd036731ee8119
 
         if nudgexy is True:
             str_xy = 'nudge1'
@@ -213,13 +338,19 @@ def slice_loop(index, file, xy1, xy2, name1, name2, first_slice = 0, last_slice 
             str_xy = 'nudge0'
 
 
+<<<<<<< HEAD
         os.system('convert -delay 25 -loop 0 Frames-'+base_name.replace('.fits','')+'-*.png Figures/gifs/Animation-'+str_box+'-'+str_hp+'-'+str_xy+'-'+base_name.replace('.fits','')+'.gif')
         for i in range(first_slice, last_slice+1):
+=======
+        os.system('convert -delay 25 -loop 0 Frames-'+base_name.replace('.fits','')+'-*.png Animation-'+str_box+'-'+str_hp+'-'+str_xy+'-'+base_name.replace('.fits','')+'.gif')
+        for i in range(first_slice, last_slice):
+>>>>>>> a38c4d444a1b4de55c0cd2b899cd036731ee8119
             os.remove('Frames-'+base_name.replace('.fits','')+'-'+str(i).zfill(2)+'.png')
 
     return index, scales
 
 
+<<<<<<< HEAD
 def find_scale(im1, im2, box_size, nudgexy = False):
 
     if (np.size(im1) != np.size(im2)):
@@ -245,9 +376,79 @@ def find_scale(im1, im2, box_size, nudgexy = False):
         x += dx
         y += dy
         shifted_im1 = ndimage.map_coordinates(im1, (y, x), cval = np.nan)
+=======
+def find_scale(stamp1, stamp2, nudgexy = False):
+
+    if (np.size(stamp1) != np.size(stamp2)):
+        print 'Stamps do not have same dimensions'
+        return 0
+
+    guess =  np.nanmax(stamp2) / np.nanmax(stamp1)
+    result = optimize.minimize(minimize_psf, guess, args=(stamp1, stamp2), method = 'Nelder-Mead') 
+    scale = result.x[0]
+
+    return scale
+
+
+def minimize_psf(scale, im1, im2): 
+    """ Simply minimize residuals
+    Args:
+        scale - scale factor 
+        ave_dm - average dm for a given slice
+        ave_sat - average sat for a given slice 
+    return:
+        residuals for ave_dm and ave_sat
+
+    """
+    return np.nansum(np.abs(((scale*im1) - im2)))
+
+
+def extract_stamp(im, xy, box_size):
+    """ Extracts stamp centered on star/spot in image based on initial guess
+    Args:
+        image - a slice of the original data cube
+        xy - initial xy coordinate guess to center of spot
+        box_size - size of stamp to be extracted (actually, size of radial mask, box is 4 pixels bigger)
+    Return:
+        output - box cutout of spot with optimized center 
+    """
+    
+    box_size = float(box_size)
+    xguess = float(xy[0])
+    yguess = float(xy[1])
+
+    #Exctracts a 20px stamp centered on the guess
+    x,y = gen_xy(20.0)
+    x += (xguess-20/2.)
+    y += (yguess-20/2.)
+    output = pixel_map(im,x,y)
+
+    #Fits location of star/spot
+    xc,yc = return_pos(output, (xguess,yguess), x,y)
+    
+    #Extracts a box_size + 4 width stamp centered on exact position
+    x,y = gen_xy(box_size+4)
+    x += (xc-np.round((box_size+4)/2.))
+    y += (yc-np.round((box_size+4)/2.))
+    output = pixel_map(im,x,y)
+
+    #Apply radial mask
+    r = np.sqrt((x-xc)**2 + (y-yc)**2)
+    output[np.where(r>box_size/2)] = np.nan
+
+    return output
+>>>>>>> a38c4d444a1b4de55c0cd2b899cd036731ee8119
 
     return scale, dx, dy, shifted_im1
 
+<<<<<<< HEAD
+=======
+def pixel_map(image,x,y):
+
+    image[np.isnan(image)] = np.nanmedian(image)
+
+    return ndimage.map_coordinates(image, (y,x),cval=np.nan)
+>>>>>>> a38c4d444a1b4de55c0cd2b899cd036731ee8119
 
 def minimize_psf(p, im1, im2, box_size, nudgexy): 
     """ Simply minimize residuals
@@ -258,6 +459,7 @@ def minimize_psf(p, im1, im2, box_size, nudgexy):
     return:
         residuals for ave_dm and ave_sat
 
+<<<<<<< HEAD
     """
     if nudgexy is False:
         return np.nansum(np.abs(((p*im1) - im2)))
@@ -268,16 +470,41 @@ def minimize_psf(p, im1, im2, box_size, nudgexy):
         shifted_im1 = ndimage.map_coordinates(im1, (y, x), cval = np.nan)
 
         return np.nansum(np.abs(((p[0]*shifted_im1) - im2)))
+=======
+def gen_xy(size):
+
+    s = np.array([size,size])
+    x,y = np.meshgrid(np.arange(s[1]),np.arange(s[0]))
+
+    return x,y
+
+
+def twoD_Gaussian(xy, amplitude, xo, yo, sigma, offset):
+
+    x,y = xy
+    xo = float(xo)
+    yo = float(yo)    
+    a = 1.0 / (2.0 * sigma**2.0)
+    b = 1.0 / (2.0 * sigma**2.0)
+    g = offset + amplitude*np.exp( - ((a*((x-xo)**2)) + (b*((y-yo)**2))))
+    
+    return g.ravel()
+>>>>>>> a38c4d444a1b4de55c0cd2b899cd036731ee8119
 
 
 def radial_mask(im, box_size, return_indx = False):
 
+<<<<<<< HEAD
     new_im = np.copy(im)
     x, y = gen_xy(box_size + 4)
     xc = np.round((box_size + 4) / 2.0)
     yc = np.round((box_size + 4) / 2.0)
     r = np.sqrt((x - xc)**2 + (y - yc)**2)
     new_im[np.where(r > box_size/2.0)] = np.nan
+=======
+    p0 = [np.nanmax(im), xy_guess[0], xy_guess[1], 3.0, 0.0]
+    popt, pcov = optimize.curve_fit(twoD_Gaussian, (x, y), im.ravel(), p0 = p0, maxfev=15000000)
+>>>>>>> a38c4d444a1b4de55c0cd2b899cd036731ee8119
 
     if return_indx is False:
         return new_im
@@ -285,6 +512,7 @@ def radial_mask(im, box_size, return_indx = False):
         return new_im, np.where(r > box_size/2.0)
 
 
+<<<<<<< HEAD
 def extract_stamp(im, xy, box_size):
     """ Extracts stamp centered on star/spot in image based on initial guess
     Args:
@@ -366,6 +594,8 @@ def return_pos(im, xy_guess,x,y):
     return result.x[1], result.x[2]
 
 
+=======
+>>>>>>> a38c4d444a1b4de55c0cd2b899cd036731ee8119
 def high_pass_filter(img, filtersize=10):
     """
     A FFT implmentation of high pass filter from pyKLIP.
