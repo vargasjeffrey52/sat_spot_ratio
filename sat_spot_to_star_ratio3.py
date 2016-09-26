@@ -79,7 +79,7 @@ def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice
         avg_dm_cube[i] = fits.getdata(path+list_dm[i], 1)
     avg_dm_cube = np.nanmean(avg_dm_cube, axis=0)
     avg_name = os.path.basename(list_dm[0]).replace('.fits', '_avg.fits')
-    index, avg_star_dm_ratio, resids = slice_loop(0, None, star_pos, dm_pos1, 'ASU', 'DM spot', first_slice = first_slice, last_slice = last_slice, high_pass = high_pass, box_size = box_size, nudgexy = nudgexy, save_gif = save_gif, avg_cube = avg_dm_cube, avg_name = avg_name, path = path)
+    index, avg_star_dm_ratio, resids = slice_loop(0, None, star_pos, dm_pos1, 'ASU', 'DM spot', first_slice = first_slice, last_slice = last_slice, high_pass = high_pass, box_size = box_size, nudgexy = nudgexy, save_gif = True, avg_cube = avg_dm_cube, avg_name = avg_name, path = path)
 
     avg_name  = path+'diag_avg_dm_cube_'+str(high_pass)+'.fits'
     if (high_pass is not False) and (os.path.isfile(avg_name) is False):
@@ -93,7 +93,7 @@ def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice
         avg_sat_cube[i] = fits.getdata(path+list_sat[i], 1)
     avg_sat_cube = np.nanmean(avg_sat_cube, axis=0)
     avg_name = os.path.basename(list_sat[0]).replace('.fits', '_avg.fits')
-    index, avg_dm_sat_ratio, resids = slice_loop(0, None, dm_pos2, sat_pos, 'DM spot', 'Sat spot', first_slice = first_slice, last_slice = last_slice, high_pass = high_pass, box_size = box_size, nudgexy = nudgexy, save_gif = save_gif, avg_cube = avg_sat_cube, avg_name = avg_name, path = path)
+    index, avg_dm_sat_ratio, resids = slice_loop(0, None, dm_pos2, sat_pos, 'DM spot', 'Sat spot', first_slice = first_slice, last_slice = last_slice, high_pass = high_pass, box_size = box_size, nudgexy = nudgexy, save_gif = True, avg_cube = avg_sat_cube, avg_name = avg_name, path = path)
 
     avg_name = path+'diag_avg_sat_cube_'+str(high_pass)+'.fits'
     if (high_pass is not False) and (os.path.isfile(avg_name) is False):
@@ -205,7 +205,7 @@ def slice_loop(index, file, xy1, xy2, name1, name2, first_slice = 0, last_slice 
             ax.yaxis.set_ticklabels([])
 
             fig.subplots_adjust(wspace=0.10, hspace=0.15)
-            plt.savefig(path+'Frames-'+base_name.replace('.fits','')+'-'+str(i).zfill(2)+'.png', dpi = 150, bbox_inches='tight')
+            plt.savefig(path+'Frames-'+base_name.replace('.fits','')+'-'+str(i).zfill(2)+'.png', dpi = 100, bbox_inches='tight')
             plt.close('all')
 
         #Calculate mean of residuals here (currently using sum of absolute residuals)
