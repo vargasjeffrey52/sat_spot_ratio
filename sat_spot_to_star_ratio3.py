@@ -7,7 +7,7 @@ from scipy import optimize
 import multiprocessing as mp
 import numpy.fft as fft
 
-def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice = 0, last_slice = 36, high_pass = False, box_size = 8, nudgexy = False, save_gif = False):
+def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice = 0, last_slice = 36, high_pass = False, box_size = 8, nudgexy = False, save_gif = False, path = ''):
     """
     Main function for DM spot data
     Input:
@@ -33,17 +33,17 @@ def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice
     n_sat = np.size(list_sat)
 
     #Check all files have same wavelength solution
-    header = fits.getheader(list_dm[0], 1)
+    header = fits.getheader(path+list_dm[0], 1)
     wl = (np.arange(37)*header['CD3_3']) + header['CRVAL3']
     
     for i in range(0, n_dm):
-        header = fits.getheader(list_dm[i], 1)
+        header = fits.getheader(path+list_dm[i], 1)
         if np.sum(wl - ((np.arange(37)*header['CD3_3']) + header['CRVAL3'])) != 0:
             print 'Wavelength axes do not match'
             return 0
 
     for i in range(0, n_sat):
-        header = fits.getheader(list_sat[i], 1)
+        header = fits.getheader(path+list_sat[i], 1)
         if np.sum(wl - ((np.arange(37)*header['CD3_3']) + header['CRVAL3'])) != 0:
             print 'Wavelength axes do not match'
             return 0
@@ -55,9 +55,9 @@ def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice
     dm_sat_resid = np.zeros((n_sat, 37), dtype=np.float64) * np.nan
 
     pool = mp.Pool()
-    kw = {'first_slice': first_slice, 'last_slice': last_slice, 'high_pass': high_pass, 'box_size': box_size, 'nudgexy': nudgexy, 'save_gif': save_gif}
+    kw = {'first_slice': first_slice, 'last_slice': last_slice, 'high_pass': high_pass, 'box_size': box_size, 'nudgexy': nudgexy, 'save_gif': save_gif, 'path': path}
     result1 = [pool.apply_async(slice_loop, (i, list_dm[i], star_pos, dm_pos1, 'ASU', 'DM spot'), kw) for i in range(0, n_dm)]  
-    kw = {'first_slice': first_slice, 'last_slice': last_slice, 'high_pass': high_pass, 'box_size': box_size, 'nudgexy': nudgexy, 'save_gif': save_gif}
+    kw = {'first_slice': first_slice, 'last_slice': last_slice, 'high_pass': high_pass, 'box_size': box_size, 'nudgexy': nudgexy, 'save_gif': save_gif, 'path': path}
     result2 = [pool.apply_async(slice_loop, (i, list_sat[i], dm_pos2, sat_pos, 'DM spot', 'Sat spot'), kw) for i in range(0, n_sat)]  
     
     output = [p.get() for p in result1]
@@ -76,12 +76,12 @@ def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice
     #Also combine all dm and sat images together and run again
     avg_dm_cube = np.zeros((n_dm, 37, 281, 281), dtype=np.float64)
     for i in xrange(0, n_dm):
-        avg_dm_cube[i] = fits.getdata(list_dm[i], 1)
+        avg_dm_cube[i] = fits.getdata(path+list_dm[i], 1)
     avg_dm_cube = np.nanmean(avg_dm_cube, axis=0)
     avg_name = os.path.basename(list_dm[0]).replace('.fits', '_avg.fits')
-    index, avg_star_dm_ratio, resids = slice_loop(0, None, star_pos, dm_pos1, 'ASU', 'DM spot', first_slice = first_slice, last_slice = last_slice, high_pass = high_pass, box_size = box_size, nudgexy = nudgexy, save_gif = save_gif, avg_cube = avg_dm_cube, avg_name = avg_name)
+    index, avg_star_dm_ratio, resids = slice_loop(0, None, star_pos, dm_pos1, 'ASU', 'DM spot', first_slice = first_slice, last_slice = last_slice, high_pass = high_pass, box_size = box_size, nudgexy = nudgexy, save_gif = save_gif, avg_cube = avg_dm_cube, avg_name = avg_name, path = path)
 
-    avg_name  = 'diag_avg_dm_cube_'+str(high_pass)+'.fits'
+    avg_name  = path+'diag_avg_dm_cube_'+str(high_pass)+'.fits'
     if (high_pass is not False) and (os.path.isfile(avg_name) is False):
         for i in xrange(0, 37):
             im = avg_dm_cube[i, :, :]
@@ -90,12 +90,12 @@ def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice
 
     avg_sat_cube = np.zeros((n_sat, 37, 281, 281), dtype=np.float64)
     for i in xrange(0, n_sat):
-        avg_sat_cube[i] = fits.getdata(list_sat[i], 1)
+        avg_sat_cube[i] = fits.getdata(path+list_sat[i], 1)
     avg_sat_cube = np.nanmean(avg_sat_cube, axis=0)
     avg_name = os.path.basename(list_sat[0]).replace('.fits', '_avg.fits')
-    index, avg_dm_sat_ratio, resids = slice_loop(0, None, dm_pos2, sat_pos, 'DM spot', 'Sat spot', first_slice = first_slice, last_slice = last_slice, high_pass = high_pass, box_size = box_size, nudgexy = nudgexy, save_gif = save_gif, avg_cube = avg_sat_cube, avg_name = avg_name)
+    index, avg_dm_sat_ratio, resids = slice_loop(0, None, dm_pos2, sat_pos, 'DM spot', 'Sat spot', first_slice = first_slice, last_slice = last_slice, high_pass = high_pass, box_size = box_size, nudgexy = nudgexy, save_gif = save_gif, avg_cube = avg_sat_cube, avg_name = avg_name, path = path)
 
-    avg_name = 'diag_avg_sat_cube_'+str(high_pass)+'.fits'
+    avg_name = path+'diag_avg_sat_cube_'+str(high_pass)+'.fits'
     if (high_pass is not False) and (os.path.isfile(avg_name) is False):
         for i in xrange(0, 37):
             im = avg_sat_cube[i, :, :]
@@ -113,7 +113,7 @@ def ratio_companion():
     return 0
 
 
-def slice_loop(index, file, xy1, xy2, name1, name2, first_slice = 0, last_slice = 36, high_pass = False, box_size = 8, nudgexy = False, save_gif = False, avg_cube = None, avg_name = None):
+def slice_loop(index, file, xy1, xy2, name1, name2, first_slice = 0, last_slice = 36, high_pass = False, box_size = 8, nudgexy = False, save_gif = False, avg_cube = None, avg_name = None, path = ''):
 
     """
         First object should be brighter than the second, xy1 = star, xy2 = dm, xy1 = dm, xy2 = sat.
@@ -129,12 +129,11 @@ def slice_loop(index, file, xy1, xy2, name1, name2, first_slice = 0, last_slice 
         base_name = avg_name
         file = avg_name
     else:
-        cube = fits.getdata(file)
-        base_name = os.path.basename(file)
+        cube = fits.getdata(path+file)
+        base_name = os.path.basename(path+file)
 
     stamp_cm = 'gnuplot2'
     
-
     for i in range(first_slice, last_slice+1):
 
         if save_gif is True:
@@ -206,7 +205,7 @@ def slice_loop(index, file, xy1, xy2, name1, name2, first_slice = 0, last_slice 
             ax.yaxis.set_ticklabels([])
 
             fig.subplots_adjust(wspace=0.10, hspace=0.15)
-            plt.savefig('Frames-'+base_name.replace('.fits','')+'-'+str(i).zfill(2)+'.png', dpi = 150, bbox_inches='tight')
+            plt.savefig(path+'Frames-'+base_name.replace('.fits','')+'-'+str(i).zfill(2)+'.png', dpi = 150, bbox_inches='tight')
             plt.close('all')
 
         #Calculate mean of residuals here (currently using sum of absolute residuals)
@@ -227,9 +226,9 @@ def slice_loop(index, file, xy1, xy2, name1, name2, first_slice = 0, last_slice 
             str_xy = 'nudge0'
 
 
-        os.system('convert -delay 25 -loop 0 Frames-'+base_name.replace('.fits','')+'-*.png Figures/gifs/Animation-'+str_box+'-'+str_hp+'-'+str_xy+'-'+base_name.replace('.fits','')+'.gif')
+        os.system('convert -delay 25 -loop 0 '+path+'Frames-'+base_name.replace('.fits','')+'-*.png '+path+'Figures/gifs/Animation-'+str_box+'-'+str_hp+'-'+str_xy+'-'+base_name.replace('.fits','')+'.gif')
         for i in range(first_slice, last_slice+1):
-            os.remove('Frames-'+base_name.replace('.fits','')+'-'+str(i).zfill(2)+'.png')
+            os.remove(path+'Frames-'+base_name.replace('.fits','')+'-'+str(i).zfill(2)+'.png')
 
     return index, scales, residuals
 
@@ -411,3 +410,71 @@ def high_pass_filter(img, filtersize=10):
     img[nan_index] = np.nan
 
     return filtered
+
+def save_spot_pos(band):
+
+    #Simple function to save satellite spot position guesses
+    #Valid for UCSC lab data
+
+    if band == 'J':
+
+        dm_pos0 = np.array([[129, 161], [117, 131], [148, 119], [159, 149]])
+        dm_pos36 = np.array([[127, 165], [113, 129], [149, 115], [163, 151]])
+        dm_pos = np.zeros((37, 4, 2), dtype=np.float64)
+
+        for i in range(0, 37):
+            for j in range(0, 4):
+                for k in range(0, 2):
+                    delta = float(dm_pos36[j, k] - dm_pos0[j, k])/37.0
+                    dm_pos[i, j, k] = dm_pos0[j, k] + (delta * float(i))
+
+        dm_pos = dm_pos.astype(int)
+
+        sat_pos0 = np.array([[97, 156], [124, 99], [182, 126], [154, 183]])
+        sat_pos36 = np.array([[89, 159], [121, 91], [190, 123], [157, 191]])
+        sat_pos = np.zeros((37, 4, 2), dtype=np.float64)
+
+        for i in range(0, 37):
+            for j in range(0, 4):
+                for k in range(0, 2):
+                    delta = float(sat_pos36[j, k] - sat_pos0[j, k])/37.0
+                    sat_pos[i, j, k] = sat_pos0[j, k] + (delta * float(i))
+
+        sat_pos = sat_pos.astype(int)
+
+        fits.writeto('centers_'+band+'_dm.fits', dm_pos, clobber=True)
+        fits.writeto('centers_'+band+'_sat.fits', sat_pos, clobber=True)
+
+    if band == 'K2':
+
+        #Limited wavelength coverage, channel 6 -- 11 only
+
+        dm_pos6 = np.array([[122.12, 178.78], [99.97, 122.1], [156.00, 100.41], [177.53, 156.07]])
+        dm_pos11 = np.array([[122.14, 179.02], [99.68, 121.65], [156.39, 99.95], [177.93, 155.91]])
+        dm_pos = np.zeros((37, 4, 2), dtype=np.float64)
+
+        for i in range(0, 37):
+            for j in range(0, 4):
+                for k in range(0, 2):
+                    delta = float(dm_pos11[j, k] - dm_pos6[j, k])/5.0
+                    dm_pos[i, j, k] = dm_pos6[j, k] + (delta * float(i-6))
+
+        dm_pos = dm_pos.astype(int)
+
+        sat_pos6 = np.array([[61.925, 171.16], [107.47, 61.227], [216.51, 107.1], [170.77, 216.92]])
+        sat_pos11 = np.array([[60.342, 171.31], [107.3, 60.371], [217.38, 106.71], [171.12, 217.76]])
+        sat_pos = np.zeros((37, 4, 2), dtype=np.float64)
+
+        for i in range(0, 37):
+            for j in range(0, 4):
+                for k in range(0, 2):
+                    delta = float(sat_pos11[j, k] - sat_pos6[j, k])/4.0
+                    sat_pos[i, j, k] = sat_pos6[j, k] + (delta * float(i-6))
+
+        sat_pos = sat_pos.astype(int)
+
+        fits.writeto('centers_'+band+'_dm.fits', dm_pos, clobber=True)
+        fits.writeto('centers_'+band+'_sat.fits', sat_pos, clobber=True)
+
+
+
