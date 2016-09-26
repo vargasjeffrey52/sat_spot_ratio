@@ -50,12 +50,9 @@ def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice
 
     #This will be parallelized
     star_dm_ratio = np.zeros((n_dm, 37), dtype=np.float64) * np.nan
+    star_dm_resid = np.zeros((n_dm, 37), dtype=np.float64) * np.nan
     dm_sat_ratio = np.zeros((n_sat, 37), dtype=np.float64) * np.nan
-
-    #for i in xrange(0, n_dm):
-    #    print list_dm[i]
-    #    a, b = slice_loop(i, list_dm[i], star_pos, dm_pos1, 'ASU', 'DM spot', first_slice = 2, last_slice = 18, high_pass = 16, box_size = 8, nudgexy = True, save_gif = False)
-    #print ajsdkljl
+    dm_sat_resid = np.zeros((n_sat, 37), dtype=np.float64) * np.nan
 
     pool = mp.Pool()
     kw = {'first_slice': first_slice, 'last_slice': last_slice, 'high_pass': high_pass, 'box_size': box_size, 'nudgexy': nudgexy, 'save_gif': save_gif}
@@ -66,10 +63,12 @@ def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice
     output = [p.get() for p in result1]
     for i in range(0, n_dm):
         star_dm_ratio[output[i][0]] = output[i][1]
+        star_dm_resid[output[i][0]] = output[i][2]
 
     output = [p.get() for p in result2]
     for i in range(0, n_sat):
         dm_sat_ratio[output[i][0]] = output[i][1]
+        dm_sat_resid[output[i][0]] = output[i][2]
 
     pool.close()
     pool.join()
@@ -80,17 +79,28 @@ def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice
         avg_dm_cube[i] = fits.getdata(list_dm[i], 1)
     avg_dm_cube = np.nanmean(avg_dm_cube, axis=0)
     avg_name = os.path.basename(list_dm[0]).replace('.fits', '_avg.fits')
-    index, avg_star_dm_ratio = slice_loop(0, None, star_pos, dm_pos1, 'ASU', 'DM spot', first_slice = first_slice, last_slice = last_slice, high_pass = high_pass, box_size = box_size, nudgexy = nudgexy, save_gif = save_gif, avg_cube = avg_dm_cube, avg_name = avg_name)
+    index, avg_star_dm_ratio, resids = slice_loop(0, None, star_pos, dm_pos1, 'ASU', 'DM spot', first_slice = first_slice, last_slice = last_slice, high_pass = high_pass, box_size = box_size, nudgexy = nudgexy, save_gif = save_gif, avg_cube = avg_dm_cube, avg_name = avg_name)
+
+    if high_pass is not False:
+        for i in xrange(0, 37):
+            im = avg_dm_cube[i, :, :]
+            avg_dm_cube[i, :, :] = high_pass_filter(im, high_pass)
+        fits.writeto('diag_avg_dm_cube_'+str(high_pass)+'.fits', avg_dm_cube, clobber=True)
 
     avg_sat_cube = np.zeros((n_sat, 37, 281, 281), dtype=np.float64)
     for i in xrange(0, n_sat):
         avg_sat_cube[i] = fits.getdata(list_sat[i], 1)
     avg_sat_cube = np.nanmean(avg_sat_cube, axis=0)
     avg_name = os.path.basename(list_sat[0]).replace('.fits', '_avg.fits')
-    index, avg_dm_sat_ratio = slice_loop(0, None, dm_pos2, sat_pos, 'DM spot', 'Sat spot', first_slice = first_slice, last_slice = last_slice, high_pass = high_pass, box_size = box_size, nudgexy = nudgexy, save_gif = save_gif, avg_cube = avg_sat_cube, avg_name = avg_name)
+    index, avg_dm_sat_ratio, resids = slice_loop(0, None, dm_pos2, sat_pos, 'DM spot', 'Sat spot', first_slice = first_slice, last_slice = last_slice, high_pass = high_pass, box_size = box_size, nudgexy = nudgexy, save_gif = save_gif, avg_cube = avg_sat_cube, avg_name = avg_name)
 
+    if high_pass is not False:
+        for i in xrange(0, 37):
+            im = avg_sat_cube[i, :, :]
+            avg_sat_cube[i, :, :] = high_pass_filter(im, high_pass)
+        fits.writeto('diag_avg_sat_cube_'+str(high_pass)+'.fits', avg_sat_cube, clobber=True)
 
-    return wl, star_dm_ratio, dm_sat_ratio, avg_star_dm_ratio, avg_dm_sat_ratio
+    return wl, star_dm_ratio, dm_sat_ratio, star_dm_resid, dm_sat_resid, avg_star_dm_ratio, avg_dm_sat_ratio
 
 
 def ratio_companion():
@@ -110,6 +120,7 @@ def slice_loop(index, file, xy1, xy2, name1, name2, first_slice = 0, last_slice 
     stamp1 = np.zeros((37, box_size+4, box_size+4), dtype=np.float64)
     stamp2 = np.zeros((37, box_size+4, box_size+4), dtype=np.float64)
     scales = np.zeros(37, dtype=np.float64) * np.nan
+    residuals = np.zeros(37, dtype=np.float64) * np.nan
 
     if avg_cube is not None:
         cube = np.copy(avg_cube)
@@ -193,8 +204,11 @@ def slice_loop(index, file, xy1, xy2, name1, name2, first_slice = 0, last_slice 
             ax.yaxis.set_ticklabels([])
 
             fig.subplots_adjust(wspace=0.10, hspace=0.15)
-            plt.savefig('Frames-'+base_name.replace('.fits','')+'-'+str(i).zfill(2)+'.png', dpi = 200, bbox_inches='tight')
+            plt.savefig('Frames-'+base_name.replace('.fits','')+'-'+str(i).zfill(2)+'.png', dpi = 150, bbox_inches='tight')
             plt.close('all')
+
+        #Calculate mean of residuals here (currently using sum of absolute residuals)
+        residuals[i] = np.nanmean(radial_mask(np.abs((stamp1[i]*scales[i]) - stamp2[i]), box_size))
 
     #Create gif here
     if save_gif is True:
@@ -215,7 +229,7 @@ def slice_loop(index, file, xy1, xy2, name1, name2, first_slice = 0, last_slice 
         for i in range(first_slice, last_slice+1):
             os.remove('Frames-'+base_name.replace('.fits','')+'-'+str(i).zfill(2)+'.png')
 
-    return index, scales
+    return index, scales, residuals
 
 
 def find_scale(im1, im2, box_size, nudgexy = False):
@@ -347,19 +361,20 @@ def return_pos(im, xy_guess,x,y):
     p0 = [np.nanmax(im), xy_guess[0], xy_guess[1], 1.25]
     result = optimize.minimize(twoD_Gaussian, p0, args = (im, (x, y)), method = 'Nelder-Mead')
 
-    if result.success is False:
-        fits.writeto('test_im.fits', im, clobber=True)
+    #For debugging
+    # if result.success is False:
+    #     fits.writeto('test_im.fits', im, clobber=True)
 
-        p  =p0  
-        a = 1.0 / (2.0 * p[3]**2.0)
-        b = 1.0 / (2.0 * p[3]**2.0)
-        g =  p[0]*np.exp( -((a*((x-p[1])**2)) + (b*((y-p[2])**2))))
-        fits.writeto('test_model.fits', g, clobber=True)
+    #     p  =p0  
+    #     a = 1.0 / (2.0 * p[3]**2.0)
+    #     b = 1.0 / (2.0 * p[3]**2.0)
+    #     g =  p[0]*np.exp( -((a*((x-p[1])**2)) + (b*((y-p[2])**2))))
+    #     fits.writeto('test_model.fits', g, clobber=True)
 
-        print p0
-        print np.min(x), np.min(y)
-        print result
-        print asjkljl
+    #     print p0
+    #     print np.min(x), np.min(y)
+    #     print result
+    
     return result.x[1], result.x[2]
 
 
