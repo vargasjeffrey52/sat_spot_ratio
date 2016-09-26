@@ -81,11 +81,12 @@ def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice
     avg_name = os.path.basename(list_dm[0]).replace('.fits', '_avg.fits')
     index, avg_star_dm_ratio, resids = slice_loop(0, None, star_pos, dm_pos1, 'ASU', 'DM spot', first_slice = first_slice, last_slice = last_slice, high_pass = high_pass, box_size = box_size, nudgexy = nudgexy, save_gif = save_gif, avg_cube = avg_dm_cube, avg_name = avg_name)
 
-    if high_pass is not False:
+    avg_name  = 'diag_avg_dm_cube_'+str(high_pass)+'.fits'
+    if (high_pass is not False) and (os.path.isfile(avg_name) is False):
         for i in xrange(0, 37):
             im = avg_dm_cube[i, :, :]
             avg_dm_cube[i, :, :] = high_pass_filter(im, high_pass)
-        fits.writeto('diag_avg_dm_cube_'+str(high_pass)+'.fits', avg_dm_cube, clobber=True)
+        fits.writeto(avg_name, avg_dm_cube, clobber=True)
 
     avg_sat_cube = np.zeros((n_sat, 37, 281, 281), dtype=np.float64)
     for i in xrange(0, n_sat):
@@ -94,11 +95,12 @@ def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice
     avg_name = os.path.basename(list_sat[0]).replace('.fits', '_avg.fits')
     index, avg_dm_sat_ratio, resids = slice_loop(0, None, dm_pos2, sat_pos, 'DM spot', 'Sat spot', first_slice = first_slice, last_slice = last_slice, high_pass = high_pass, box_size = box_size, nudgexy = nudgexy, save_gif = save_gif, avg_cube = avg_sat_cube, avg_name = avg_name)
 
-    if high_pass is not False:
+    avg_name = 'diag_avg_sat_cube_'+str(high_pass)+'.fits'
+    if (high_pass is not False) and (os.path.isfile(avg_name) is False):
         for i in xrange(0, 37):
             im = avg_sat_cube[i, :, :]
             avg_sat_cube[i, :, :] = high_pass_filter(im, high_pass)
-        fits.writeto('diag_avg_sat_cube_'+str(high_pass)+'.fits', avg_sat_cube, clobber=True)
+        fits.writeto(avg_name, avg_sat_cube, clobber=True)
 
     return wl, star_dm_ratio, dm_sat_ratio, star_dm_resid, dm_sat_resid, avg_star_dm_ratio, avg_dm_sat_ratio
 
