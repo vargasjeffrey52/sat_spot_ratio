@@ -26,10 +26,10 @@ def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice
     #Convert star_pos into a (37, 2) array for reasons
     star_pos = np.tile(star_pos, (37, 1))
 
-    list_dm = np.loadtxt(list_dm, dtype=str)
+    list_dm = np.genfromtxt(list_dm, dtype=str)
     n_dm = np.size(list_dm)
 
-    list_sat = np.loadtxt(list_sat, dtype=str)
+    list_sat = np.genfromtxt(list_sat, dtype=str)
     n_sat = np.size(list_sat)
 
     #Check all files have same wavelength solution
@@ -39,13 +39,13 @@ def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice
     for i in range(0, n_dm):
         header = fits.getheader(path+list_dm[i], 1)
         if np.sum(wl - ((np.arange(37)*header['CD3_3']) + header['CRVAL3'])) != 0:
-            print 'Wavelength axes do not match'
+            print ('Wavelength axes do not match')
             return 0
 
     for i in range(0, n_sat):
         header = fits.getheader(path+list_sat[i], 1)
         if np.sum(wl - ((np.arange(37)*header['CD3_3']) + header['CRVAL3'])) != 0:
-            print 'Wavelength axes do not match'
+            print ('Wavelength axes do not match')
             return 0
 
     #This will be parallelized
@@ -75,7 +75,7 @@ def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice
 
     #Also combine all dm and sat images together and run again
     avg_dm_cube = np.zeros((n_dm, 37, 281, 281), dtype=np.float64)
-    for i in xrange(0, n_dm):
+    for i in range(0, n_dm):
         avg_dm_cube[i] = fits.getdata(path+list_dm[i], 1)
     avg_dm_cube = np.nanmean(avg_dm_cube, axis=0)
     avg_name = os.path.basename(list_dm[0]).replace('.fits', '_avg.fits')
@@ -83,13 +83,13 @@ def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice
 
     avg_name  = path+'diag_avg_dm_cube_'+str(high_pass)+'.fits'
     if (high_pass is not False) and (os.path.isfile(avg_name) is False):
-        for i in xrange(0, 37):
+        for i in range(0, 37):
             im = avg_dm_cube[i, :, :]
             avg_dm_cube[i, :, :] = high_pass_filter(im, high_pass)
         fits.writeto(avg_name, avg_dm_cube, clobber=True)
 
     avg_sat_cube = np.zeros((n_sat, 37, 281, 281), dtype=np.float64)
-    for i in xrange(0, n_sat):
+    for i in range(0, n_sat):
         avg_sat_cube[i] = fits.getdata(path+list_sat[i], 1)
     avg_sat_cube = np.nanmean(avg_sat_cube, axis=0)
     avg_name = os.path.basename(list_sat[0]).replace('.fits', '_avg.fits')
@@ -97,7 +97,7 @@ def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice
 
     avg_name = path+'diag_avg_sat_cube_'+str(high_pass)+'.fits'
     if (high_pass is not False) and (os.path.isfile(avg_name) is False):
-        for i in xrange(0, 37):
+        for i in range(0, 37):
             im = avg_sat_cube[i, :, :]
             avg_sat_cube[i, :, :] = high_pass_filter(im, high_pass)
         fits.writeto(avg_name, avg_sat_cube, clobber=True)
@@ -236,7 +236,7 @@ def slice_loop(index, file, xy1, xy2, name1, name2, first_slice = 0, last_slice 
 def find_scale(im1, im2, box_size, nudgexy = False):
 
     if (np.size(im1) != np.size(im2)):
-        print 'Stamps do not have same dimensions'
+        print ('Stamps do not have same dimensions')
         return 0
 
     if nudgexy is False:
