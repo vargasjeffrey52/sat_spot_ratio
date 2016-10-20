@@ -7,7 +7,7 @@ from scipy import optimize
 import multiprocessing as mp
 import numpy.fft as fft
 
-def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice = 0, last_slice = 36, high_pass = False, box_size = 8, nudgexy = False, save_gif = False, path = ''):
+def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice = 0, last_slice = 36, high_pass = 0, box_size = 8, nudgexy = False, save_gif = False, path = ''):
     """
     Main function for DM spot data
     Input:
@@ -82,7 +82,7 @@ def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice
     index, avg_star_dm_ratio, resids = slice_loop(0, None, star_pos, dm_pos1, 'ASU', 'DM spot', first_slice = first_slice, last_slice = last_slice, high_pass = high_pass, box_size = box_size, nudgexy = nudgexy, save_gif = True, avg_cube = avg_dm_cube, avg_name = avg_name, path = path)
 
     avg_name  = path+'diag_avg_dm_cube_'+str(high_pass)+'.fits'
-    if (high_pass is not False) and (os.path.isfile(avg_name) is False):
+    if (high_pass != 0) and (os.path.isfile(avg_name) is False):
         for i in range(0, 37):
             im = avg_dm_cube[i, :, :]
             avg_dm_cube[i, :, :] = high_pass_filter(im, high_pass)
@@ -96,7 +96,7 @@ def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice
     index, avg_dm_sat_ratio, resids = slice_loop(0, None, dm_pos2, sat_pos, 'DM spot', 'Sat spot', first_slice = first_slice, last_slice = last_slice, high_pass = high_pass, box_size = box_size, nudgexy = nudgexy, save_gif = True, avg_cube = avg_sat_cube, avg_name = avg_name, path = path)
 
     avg_name = path+'diag_avg_sat_cube_'+str(high_pass)+'.fits'
-    if (high_pass is not False) and (os.path.isfile(avg_name) is False):
+    if (high_pass != 0) and (os.path.isfile(avg_name) is False):
         for i in range(0, 37):
             im = avg_sat_cube[i, :, :]
             avg_sat_cube[i, :, :] = high_pass_filter(im, high_pass)
@@ -113,7 +113,7 @@ def ratio_companion():
     return 0
 
 
-def slice_loop(index, file, xy1, xy2, name1, name2, first_slice = 0, last_slice = 36, high_pass = False, box_size = 8, nudgexy = False, save_gif = False, avg_cube = None, avg_name = None, path = ''):
+def slice_loop(index, file, xy1, xy2, name1, name2, first_slice = 0, last_slice = 36, high_pass = 0, box_size = 8, nudgexy = False, save_gif = False, avg_cube = None, avg_name = None, path = ''):
 
     """
         First object should be brighter than the second, xy1 = star, xy2 = dm, xy1 = dm, xy2 = sat.
@@ -141,7 +141,7 @@ def slice_loop(index, file, xy1, xy2, name1, name2, first_slice = 0, last_slice 
             fig.suptitle(file+', slice='+str(i),fontsize=14)
 
         im = cube[i]
-        if high_pass is not False:
+        if high_pass != 0:
             im = high_pass_filter(im, high_pass)
 
         for xy, stamp, name, plt_pos in zip((xy1[i], xy2[i]), (stamp1, stamp2), (name1, name2), ((1, 3), (2, 6))):
@@ -215,10 +215,7 @@ def slice_loop(index, file, xy1, xy2, name1, name2, first_slice = 0, last_slice 
     if save_gif is True:
         str_box = 's'+str(box_size).zfill(2)
         
-        if high_pass is not False:
-            str_hp = 'hp'+str(high_pass).zfill(2)
-        else:
-            str_hp = 'hp00'
+        str_hp = 'hp'+str(high_pass).zfill(2)
 
         if nudgexy is True:
             str_xy = 'nudge1'
@@ -388,6 +385,8 @@ def high_pass_filter(img, filtersize=10):
     Returns:
         filtered: the filtered image
     """
+    if filtersize == 0:
+        return img
     # mask NaNs
     nan_index = np.where(np.isnan(img))
     img[nan_index] = 0
