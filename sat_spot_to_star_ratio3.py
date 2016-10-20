@@ -442,8 +442,21 @@ def save_spot_pos(band):
 
         sat_pos = sat_pos.astype(int)
 
+        order_2_sat_pos0 = np.array([[79, 165], [115, 81], [199, 117], [162, 201]])
+        order_2_sat_pos36 = np.array([[70, 168], [112, 72], [207, 114], [165, 211]])
+        order_2_sat_pos = np.zeros((37, 4, 2), dtype=np.float64)
+
+        for i in range(0, 37):
+            for j in range(0, 4):
+                for k in range(0, 2):
+                    delta = float(order_2_sat_pos36[j, k] - order_2_sat_pos0[j, k])/37.0
+                    order_2_sat_pos[i, j, k] = order_2_sat_pos0[j, k] + (delta * float(i))
+
+        order_2_sat_pos = order_2_sat_pos.astype(int)
+
         fits.writeto('centers_'+band+'_dm.fits', dm_pos, clobber=True)
         fits.writeto('centers_'+band+'_sat.fits', sat_pos, clobber=True)
+        fits.writeto('centers_'+band+'_sat2.fits', order_2_sat_pos, clobber=True)
 
     if band == 'K2':
 
@@ -476,5 +489,47 @@ def save_spot_pos(band):
         fits.writeto('centers_'+band+'_dm.fits', dm_pos, clobber=True)
         fits.writeto('centers_'+band+'_sat.fits', sat_pos, clobber=True)
 
+
+    if band == 'Y':
+
+        dm_pos0 = np.array([[131, 160], [122, 133], [147, 124], [157, 149]])
+        dm_pos36 = np.array([[130, 162], [118, 133], [148, 121], [160, 151]])
+        dm_pos = np.zeros((37, 4, 2), dtype=np.float64)
+
+        for i in range(0, 37):
+            for j in range(0, 4):
+                for k in range(0, 2):
+                    delta = float(dm_pos36[j, k] - dm_pos0[j, k])/37.0
+                    dm_pos[i, j, k] = dm_pos0[j, k] + (delta * float(i))
+
+        dm_pos = dm_pos.astype(int)
+
+        sat_pos0 = np.array([[103, 156], [125, 106], [175, 127], [154, 177]])
+        sat_pos36 = np.array([[97, 159], [122, 100], [181, 124], [156, 183]])
+        sat_pos = np.zeros((37, 4, 2), dtype=np.float64)
+
+        for i in range(0, 37):
+            for j in range(0, 4):
+                for k in range(0, 2):
+                    delta = float(sat_pos36[j, k] - sat_pos0[j, k])/37.0
+                    sat_pos[i, j, k] = sat_pos0[j, k] + (delta * float(i))
+
+        sat_pos = sat_pos.astype(int)
+
+        order_2_sat_pos0 = np.array([[68, 170], [111, 70], [210, 113], [168, 213]])
+        order_2_sat_pos36 = np.array([[56, 175], [105, 58], [223, 107], [173, 225]])
+        order_2_sat_pos = np.zeros((37, 4, 2), dtype=np.float64)
+
+        for i in range(0, 37):
+            for j in range(0, 4):
+                for k in range(0, 2):
+                    delta = float(order_2_sat_pos36[j, k] - order_2_sat_pos0[j, k])/37.0
+                    order_2_sat_pos[i, j, k] = order_2_sat_pos0[j, k] + (delta * float(i))
+
+        order_2_sat_pos = order_2_sat_pos.astype(int)
+
+        fits.writeto('centers_'+band+'_dm.fits', dm_pos, clobber=True)
+        fits.writeto('centers_'+band+'_sat.fits', sat_pos, clobber=True)
+        fits.writeto('centers_'+band+'_sat2.fits', order_2_sat_pos, clobber=True)
 
 
