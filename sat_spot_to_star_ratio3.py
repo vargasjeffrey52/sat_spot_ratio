@@ -6,6 +6,7 @@ from scipy import ndimage
 from scipy import optimize
 import multiprocessing as mp
 import numpy.fft as fft
+import warnings
 
 def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice = 0, last_slice = 36, high_pass = 0, box_size = 8, nudgexy = False, save_gif = False, path = ''):
     """
@@ -77,7 +78,11 @@ def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice
     avg_dm_cube = np.zeros((n_dm, 37, 281, 281), dtype=np.float64)
     for i in range(0, n_dm):
         avg_dm_cube[i] = fits.getdata(path+list_dm[i], 1)
-    avg_dm_cube = np.nanmean(avg_dm_cube, axis=0)
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=RuntimeWarning)
+        avg_dm_cube = np.nanmean(avg_dm_cube, axis=0)
+
     avg_name = os.path.basename(list_dm[0]).replace('.fits', '_avg.fits')
     index, avg_star_dm_ratio, resids = slice_loop(0, None, star_pos, dm_pos1, 'ASU', 'DM spot', first_slice = first_slice, last_slice = last_slice, high_pass = high_pass, box_size = box_size, nudgexy = nudgexy, save_gif = True, avg_cube = avg_dm_cube, avg_name = avg_name, path = path)
 
@@ -91,7 +96,11 @@ def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice
     avg_sat_cube = np.zeros((n_sat, 37, 281, 281), dtype=np.float64)
     for i in range(0, n_sat):
         avg_sat_cube[i] = fits.getdata(path+list_sat[i], 1)
-    avg_sat_cube = np.nanmean(avg_sat_cube, axis=0)
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=RuntimeWarning)
+        avg_sat_cube = np.nanmean(avg_sat_cube, axis=0)
+        
     avg_name = os.path.basename(list_sat[0]).replace('.fits', '_avg.fits')
     index, avg_dm_sat_ratio, resids = slice_loop(0, None, dm_pos2, sat_pos, 'DM spot', 'Sat spot', first_slice = first_slice, last_slice = last_slice, high_pass = high_pass, box_size = box_size, nudgexy = nudgexy, save_gif = True, avg_cube = avg_sat_cube, avg_name = avg_name, path = path)
 
