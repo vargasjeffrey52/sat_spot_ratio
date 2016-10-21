@@ -1,4 +1,6 @@
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from astropy.io import fits, ascii
 import os
@@ -7,6 +9,7 @@ from scipy import optimize
 import multiprocessing as mp
 import numpy.fft as fft
 import warnings
+import glob
 
 def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice = 0, last_slice = 36, high_pass = 0, box_size = 8, nudgexy = False, save_gif = False, path = ''):
     """
@@ -49,6 +52,15 @@ def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice
             print ('Wavelength axes do not match')
             return 0
 
+    #Save some file name strings
+    str_box = 's'+str(box_size).zfill(2)
+    str_hp = 'hp'+str(high_pass).zfill(2)
+
+    if nudgexy is True:
+        str_xy = 'nudge1'
+    else:
+        str_xy = 'nudge0'
+
     #This will be parallelized
     star_dm_ratio = np.zeros((n_dm, 37), dtype=np.float64) * np.nan
     star_dm_resid = np.zeros((n_dm, 37), dtype=np.float64) * np.nan
@@ -56,23 +68,32 @@ def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice
     dm_sat_resid = np.zeros((n_sat, 37), dtype=np.float64) * np.nan
 
     pool = mp.Pool()
-    kw = {'first_slice': first_slice, 'last_slice': last_slice, 'high_pass': high_pass, 'box_size': box_size, 'nudgexy': nudgexy, 'save_gif': save_gif, 'path': path}
-    result1 = [pool.apply_async(slice_loop, (i, list_dm[i], star_pos, dm_pos1, 'ASU', 'DM spot'), kw) for i in range(0, n_dm)]  
-    kw = {'first_slice': first_slice, 'last_slice': last_slice, 'high_pass': high_pass, 'box_size': box_size, 'nudgexy': nudgexy, 'save_gif': save_gif, 'path': path}
-    result2 = [pool.apply_async(slice_loop, (i, list_sat[i], dm_pos2, sat_pos, 'DM spot', 'Sat spot'), kw) for i in range(0, n_sat)]  
+    kw = {'high_pass': high_pass, 'box_size': box_size, 'nudgexy': nudgexy, 'save_gif': save_gif, 'path': path}
+    result1 = [pool.apply_async(slice_loop, (i, j, list_dm[i], star_pos, dm_pos1, 'ASU', 'DM spot'), kw) for i in range(0, n_dm) for j in range(first_slice, last_slice+1)]  
+    kw = {'high_pass': high_pass, 'box_size': box_size, 'nudgexy': nudgexy, 'save_gif': save_gif, 'path': path}
+    result2 = [pool.apply_async(slice_loop, (i, j, list_sat[i], dm_pos2, sat_pos, 'DM spot', 'Sat spot'), kw) for i in range(0, n_sat) for j in range(first_slice, last_slice+1)]  
     
     output = [p.get() for p in result1]
+    count = 0
     for i in range(0, n_dm):
-        star_dm_ratio[output[i][0]] = output[i][1]
-        star_dm_resid[output[i][0]] = output[i][2]
+        for j in range(first_slice, last_slice+1):
+            star_dm_ratio[output[count][0],output[count][1]] = output[count][2]
+            star_dm_resid[output[count][0],output[count][1]] = output[count][3]
+            count +=1
 
     output = [p.get() for p in result2]
+    count = 0
     for i in range(0, n_sat):
-        dm_sat_ratio[output[i][0]] = output[i][1]
-        dm_sat_resid[output[i][0]] = output[i][2]
+        for j in range(first_slice, last_slice+1):
+            dm_sat_ratio[output[count][0], output[count][1]] = output[count][2]
+            dm_sat_resid[output[count][0], output[count][1]] = output[count][3]
+            count += 1
 
-    pool.close()
-    pool.join()
+    #Now plot if save_gif is True
+     #Create gif here
+    if save_gif is True:
+        foo = [pool.apply_async(convert_gif, (path, list_dm[i], str_box, str_hp, str_xy)) for i in range(0, n_dm)]
+        foo = [pool.apply_async(convert_gif, (path, list_sat[i], str_box, str_hp, str_xy)) for i in range(0, n_sat)]
 
     #Also combine all dm and sat images together and run again
     avg_dm_cube = np.zeros((n_dm, 37, 281, 281), dtype=np.float64)
@@ -82,9 +103,6 @@ def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", category=RuntimeWarning)
         avg_dm_cube = np.nanmean(avg_dm_cube, axis=0)
-
-    avg_name = os.path.basename(list_dm[0]).replace('.fits', '_avg.fits')
-    index, avg_star_dm_ratio, resids = slice_loop(0, None, star_pos, dm_pos1, 'ASU', 'DM spot', first_slice = first_slice, last_slice = last_slice, high_pass = high_pass, box_size = box_size, nudgexy = nudgexy, save_gif = True, avg_cube = avg_dm_cube, avg_name = avg_name, path = path)
 
     avg_name  = path+'diag_avg_dm_cube_'+str(high_pass)+'.fits'
     if (high_pass != 0) and (os.path.isfile(avg_name) is False):
@@ -100,9 +118,6 @@ def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", category=RuntimeWarning)
         avg_sat_cube = np.nanmean(avg_sat_cube, axis=0)
-        
-    avg_name = os.path.basename(list_sat[0]).replace('.fits', '_avg.fits')
-    index, avg_dm_sat_ratio, resids = slice_loop(0, None, dm_pos2, sat_pos, 'DM spot', 'Sat spot', first_slice = first_slice, last_slice = last_slice, high_pass = high_pass, box_size = box_size, nudgexy = nudgexy, save_gif = True, avg_cube = avg_sat_cube, avg_name = avg_name, path = path)
 
     avg_name = path+'diag_avg_sat_cube_'+str(high_pass)+'.fits'
     if (high_pass != 0) and (os.path.isfile(avg_name) is False):
@@ -110,6 +125,36 @@ def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice
             im = avg_sat_cube[i, :, :]
             avg_sat_cube[i, :, :] = high_pass_filter(im, high_pass)
         fits.writeto(avg_name, avg_sat_cube, clobber=True)
+
+
+    kw = {'high_pass': high_pass, 'box_size': box_size, 'nudgexy': nudgexy, 'save_gif': True, 'avg_cube': avg_dm_cube, 'avg_name': os.path.basename(list_dm[0]).replace('.fits', '_avg.fits'), 'path': path}
+    result1 = [pool.apply_async(slice_loop, (0, j, None, star_pos, dm_pos1, 'ASU', 'DM spot'), kw) for j in range(first_slice, last_slice+1)]
+    kw = {'high_pass': high_pass, 'box_size': box_size, 'nudgexy': nudgexy, 'save_gif': True, 'avg_cube': avg_sat_cube, 'avg_name': os.path.basename(list_sat[0]).replace('.fits', '_avg.fits'), 'path': path}
+    result2 = [pool.apply_async(slice_loop, (0, j, None, dm_pos2, sat_pos, 'DM spot', 'Sat spot'), kw) for j in range(first_slice, last_slice+1)]
+
+    avg_star_dm_ratio = np.zeros(37, dtype=np.float64) * np.nan
+    avg_dm_sat_ratio = np.zeros(37, dtype=np.float64) * np.nan
+
+    output = [p.get() for p in result1]
+    count = 0
+    for j in range(first_slice, last_slice+1):
+        avg_star_dm_ratio[output[count][1]] = output[count][2] 
+        count += 1
+
+    output = [p.get() for p in result2]
+    count = 0
+    for j in range(first_slice, last_slice+1):
+        avg_dm_sat_ratio[output[count][1]] = output[count][2]
+        count += 1
+
+    pool.close()
+    pool.join()
+
+    convert_gif(path, list_dm[0].replace('.fits','_avg.fits'), str_box, str_hp, str_xy)
+    convert_gif(path, list_sat[0].replace('.fits','_avg.fits'), str_box, str_hp, str_xy)
+
+    for f in glob.glob(path+'Frames-*.png'):
+        os.remove(f)
 
     return wl, star_dm_ratio, dm_sat_ratio, star_dm_resid, dm_sat_resid, avg_star_dm_ratio, avg_dm_sat_ratio
 
@@ -121,17 +166,14 @@ def ratio_companion():
 
     return 0
 
-
-def slice_loop(index, file, xy1, xy2, name1, name2, first_slice = 0, last_slice = 36, high_pass = 0, box_size = 8, nudgexy = False, save_gif = False, avg_cube = None, avg_name = None, path = ''):
+def slice_loop(index, slice, file, xy1, xy2, name1, name2, high_pass = 0, box_size = 8, nudgexy = False, save_gif = False, avg_cube = None, avg_name = None, path = ''):
 
     """
         First object should be brighter than the second, xy1 = star, xy2 = dm, xy1 = dm, xy2 = sat.
     """
 
-    stamp1 = np.zeros((37, box_size+4, box_size+4), dtype=np.float64)
-    stamp2 = np.zeros((37, box_size+4, box_size+4), dtype=np.float64)
-    scales = np.zeros(37, dtype=np.float64) * np.nan
-    residuals = np.zeros(37, dtype=np.float64) * np.nan
+    stamp1 = np.zeros((box_size+4, box_size+4), dtype=np.float64)
+    stamp2 = np.zeros((box_size+4, box_size+4), dtype=np.float64)
 
     if avg_cube is not None:
         cube = np.copy(avg_cube)
@@ -143,101 +185,95 @@ def slice_loop(index, file, xy1, xy2, name1, name2, first_slice = 0, last_slice 
 
     stamp_cm = 'gnuplot2'
     
-    for i in range(first_slice, last_slice+1):
+    i = slice
 
-        if save_gif is True:
-            fig = plt.figure(figsize=(9,10))
-            fig.suptitle(file+', slice='+str(i),fontsize=14)
+    if save_gif is True:
+        #fig = plt.figure(figsize=(9,10))
+        fig, all_ax = plt.subplots(4, 3, figsize=(9, 10))
+        fig.suptitle(file+', slice='+str(i),fontsize=14)
 
-        im = cube[i]
-        if high_pass != 0:
-            im = high_pass_filter(im, high_pass)
+    im = cube[i]
+    if high_pass != 0:
+        im = high_pass_filter(im, high_pass)
 
-        for xy, stamp, name, plt_pos in zip((xy1[i], xy2[i]), (stamp1, stamp2), (name1, name2), ((1, 3), (2, 6))):
-            if len(xy) == 2:
-                stamp[i] = extract_stamp(im, xy, box_size)
-                if save_gif is True:
-                    ax = plt.subplot(4, 3, plt_pos[0])
-                    ax.imshow(radial_mask(stamp[i], box_size), interpolation = 'nearest', cmap = stamp_cm)
-                    ax.set_title(name, fontsize = 10)
-                    ax.xaxis.set_ticklabels([])
-                    ax.yaxis.set_ticklabels([])
-            else:
-                for j in range(0, 4):
-                    this_stamp = extract_stamp(im, xy[j], box_size)
-                    if save_gif is True:
-                        ax = plt.subplot(4, 3, plt_pos[0]+(j*3))
-                        ax.imshow(radial_mask(this_stamp, box_size), interpolation = 'nearest', cmap = stamp_cm)
-                        ax.set_title(name+' #'+str(j), fontsize = 10)
-                        ax.xaxis.set_ticklabels([])
-                        ax.yaxis.set_ticklabels([])
-                    stamp[i] += this_stamp
-                stamp[i] /= 4.0
-
+    for xy, stamp, name, plt_pos in zip((xy1[i], xy2[i]), (stamp1, stamp2), (name1, name2), (0, 1)):
+        if len(xy) == 2:
+            stamp[:,:] = extract_stamp(im, xy, box_size)
             if save_gif is True:
-                ax = plt.subplot(4, 3, plt_pos[1])
-                cb = ax.imshow(radial_mask(stamp[i], box_size), interpolation = 'nearest', cmap = stamp_cm)
-                cb = fig.colorbar(cb)
-                cb.ax.tick_params(labelsize = 8)
-                ax.set_title('Average '+name, fontsize = 10)
+                #ax = plt.subplot(4, 3, plt_pos[0])
+                ax = all_ax[0][plt_pos]
+                ax.imshow(radial_mask(stamp, box_size), interpolation = 'none', cmap = stamp_cm)
+                ax.set_title(name, fontsize = 10)
                 ax.xaxis.set_ticklabels([])
                 ax.yaxis.set_ticklabels([])
 
-        #Compute scale factor here
-        scales[i], dx, dy, shifted_stamp1 = find_scale(stamp1[i], stamp2[i], box_size, nudgexy = nudgexy)
-        if nudgexy is True:
-            stamp1[i] = shifted_stamp1
+                for j in range(1, 4):
+                    all_ax[j][plt_pos].xaxis.set_ticklabels([])
+                    all_ax[j][plt_pos].yaxis.set_ticklabels([])
+                    all_ax[j][plt_pos].axis('off')
+        else:
+            for j in range(0, 4):
+                this_stamp = extract_stamp(im, xy[j], box_size)
+                if save_gif is True:
+                    #ax = plt.subplot(4, 3, plt_pos[0]+(j*3))
+                    ax = all_ax[j][plt_pos]
+                    ax.imshow(radial_mask(this_stamp, box_size), interpolation = 'none', cmap = stamp_cm)
+                    ax.set_title(name+' #'+str(j), fontsize = 10)
+                    ax.xaxis.set_ticklabels([])
+                    ax.yaxis.set_ticklabels([])
+                stamp[:,:] += this_stamp
+            stamp[:,:] /= 4.0
 
         if save_gif is True:
-            ax = plt.subplot(4, 3, 9)
-            cb = ax.imshow(radial_mask(stamp1[i]*scales[i], box_size), interpolation = 'nearest', cmap = stamp_cm)
-            cb = fig.colorbar(cb)
+            #ax = plt.subplot(4, 3, plt_pos[1])
+            ax = all_ax[plt_pos][2] #Location of average image
+            cb = ax.imshow(radial_mask(stamp, box_size), interpolation = 'none', cmap = stamp_cm)
+            cb = fig.colorbar(cb, ax=ax)
             cb.ax.tick_params(labelsize = 8)
-            ax.set_title(name1+' x '+str(scales[i]), fontsize=10)
-
-            if nudgexy is True:
-                dx_str = '%0.3f' % (dx)
-                dy_str = '%0.3f' % (dy)
-                ax.annotate('dx = '+dx_str, xy=(0.2,0.85), xycoords='axes fraction', fontsize=8)
-                ax.annotate('dy = '+dy_str, xy=(0.2,0.80), xycoords='axes fraction', fontsize=8)
-
+            ax.set_title('Average '+name, fontsize = 10)
             ax.xaxis.set_ticklabels([])
             ax.yaxis.set_ticklabels([])
 
-            ax = plt.subplot(4, 3, 12)
-            cb = ax.imshow(radial_mask(((stamp1[i]*scales[i]) - stamp2[i])/np.nanmax(stamp1[i]*scales[i]), box_size), interpolation = 'nearest', cmap = 'bwr', vmin = -0.1, vmax = 0.1)
-            cb = fig.colorbar(cb)
+    #Compute scale factor here
+    scales, dx, dy, shifted_stamp1 = find_scale(stamp1, stamp2, box_size, nudgexy = nudgexy)
+    if nudgexy is True:
+        stamp1[:,:] = shifted_stamp1
 
-            cb.ax.tick_params(labelsize = 8)
-            ax.set_title('Fract. Resid.', fontsize=10)
-            ax.xaxis.set_ticklabels([])
-            ax.yaxis.set_ticklabels([])
-
-            fig.subplots_adjust(wspace=0.10, hspace=0.15)
-            plt.savefig(path+'Frames-'+base_name.replace('.fits','')+'-'+str(i).zfill(2)+'.png', dpi = 100, bbox_inches='tight')
-            plt.close('all')
-
-        #Calculate mean of residuals here (currently using sum of absolute residuals)
-        residuals[i] = np.nanmean(radial_mask(np.abs((stamp1[i]*scales[i]) - stamp2[i]), box_size))
-
-    #Create gif here
     if save_gif is True:
-        str_box = 's'+str(box_size).zfill(2)
-        
-        str_hp = 'hp'+str(high_pass).zfill(2)
+        #ax = plt.subplot(4, 3, 9)
+        ax = all_ax[2][2]
+        cb = ax.imshow(radial_mask(stamp1*scales, box_size), interpolation = 'none', cmap = stamp_cm)
+        cb = fig.colorbar(cb, ax = ax)
+        cb.ax.tick_params(labelsize = 8)
+        ax.set_title(name1+' x '+str(scales), fontsize=10)
 
         if nudgexy is True:
-            str_xy = 'nudge1'
-        else:
-            str_xy = 'nudge0'
+            dx_str = '%0.3f' % (dx)
+            dy_str = '%0.3f' % (dy)
+            ax.annotate('dx = '+dx_str, xy=(0.2,0.85), xycoords='axes fraction', fontsize=8)
+            ax.annotate('dy = '+dy_str, xy=(0.2,0.80), xycoords='axes fraction', fontsize=8)
 
+        ax.xaxis.set_ticklabels([])
+        ax.yaxis.set_ticklabels([])
 
-        os.system('convert -delay 25 -loop 0 '+path+'Frames-'+base_name.replace('.fits','')+'-*.png '+path+'Figures/gifs/Animation-'+str_box+'-'+str_hp+'-'+str_xy+'-'+base_name.replace('.fits','')+'.gif')
-        for i in range(first_slice, last_slice+1):
-            os.remove(path+'Frames-'+base_name.replace('.fits','')+'-'+str(i).zfill(2)+'.png')
+        #ax = plt.subplot(4, 3, 12)
+        ax = all_ax[3][2]
+        cb = ax.imshow(radial_mask(((stamp1*scales) - stamp2)/np.nanmax(stamp1*scales), box_size), interpolation = 'none', cmap = 'bwr', vmin = -0.1, vmax = 0.1)
+        cb = fig.colorbar(cb, ax = ax)
 
-    return index, scales, residuals
+        cb.ax.tick_params(labelsize = 8)
+        ax.set_title('Fract. Resid.', fontsize=10)
+        ax.xaxis.set_ticklabels([])
+        ax.yaxis.set_ticklabels([])
 
+        fig.subplots_adjust(wspace=0.10, hspace=0.15)
+        plt.savefig(path+'Frames-'+base_name.replace('.fits','')+'-'+str(i).zfill(2)+'.png', dpi = 100, bbox_inches='tight')
+        plt.close('all')
+
+    #Calculate mean of residuals here (currently using sum of absolute residuals)
+    residuals = np.nanmean(radial_mask(np.abs((stamp1*scales) - stamp2), box_size))
+
+    return index, slice, scales, residuals
 
 def find_scale(im1, im2, box_size, nudgexy = False):
 
@@ -418,6 +454,12 @@ def high_pass_filter(img, filtersize=10):
     img[nan_index] = np.nan
 
     return filtered
+
+def convert_gif(path, name, str_box, str_hp, str_xy):
+
+    os.system('convert -delay 25 -loop 0 '+path+'Frames-'+os.path.basename(path+name).replace('.fits','')+'-*.png '+path+'Figures/gifs/Animation-'+str_box+'-'+str_hp+'-'+str_xy+'-'+(os.path.basename(path+name)).replace('.fits','')+'.gif')
+
+    return 0
 
 def save_spot_pos(band):
 
