@@ -153,9 +153,9 @@ def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice
     convert_gif(path, list_dm[0].replace('.fits','_avg.fits'), str_box, str_hp, str_xy, order)
     convert_gif(path, list_sat[0].replace('.fits','_avg.fits'), str_box, str_hp, str_xy, order)
     if order == 1 :
-            order_path = "Figure/"
-        else:
-            order_path = "Figure/2nd_order/"
+        order_path = "Figures/"
+    else:
+        order_path = "Figures/2nd_order/"
 
     for f in glob.glob(path+ order_path+'Frames-*.png'):
         os.remove(f)
@@ -170,7 +170,7 @@ def ratio_companion():
 
     return 0
 
-def slice_loop(index, slice, file, xy1, xy2, name1, name2, high_pass = 0, box_size = 8, nudgexy = False, save_gif = False, avg_cube = None, avg_name = None, path = ''):
+def slice_loop(index, slice, file, xy1, xy2, name1, name2, high_pass = 0, box_size = 8, nudgexy = False, save_gif = False, avg_cube = None, avg_name = None, path = '',order =1):
 
     """
         First object should be brighter than the second, xy1 = star, xy2 = dm, xy1 = dm, xy2 = sat.
@@ -272,9 +272,9 @@ def slice_loop(index, slice, file, xy1, xy2, name1, name2, high_pass = 0, box_si
 
         fig.subplots_adjust(wspace=0.10, hspace=0.15)
         if order == 1 :
-            order_path = "Figure/"
+            order_path = "Figures/"
         else:
-            order_path = "Figure/2nd_order/"
+            order_path = "Figures/2nd_order/"
         plt.savefig(path+order_path+'Frames-'+base_name.replace('.fits','')+'-'+str(i).zfill(2)+'.png', dpi = 100, bbox_inches='tight')
         plt.close('all')
 
@@ -468,9 +468,9 @@ def high_pass_filter(img, filtersize=10):
 
 def convert_gif(path, name, str_box, str_hp, str_xy,order):
     if order == 1 :
-            order_path = "Figure/"
-        else:
-            order_path = "Figure/2nd_order/"
+        order_path = "Figures/"
+    else:
+        order_path = "Figures/2nd_order/"
 
     os.system('convert -delay 25 -loop 0 '+path+order_path+'Frames-'+os.path.basename(path+name).replace('.fits','')+'-*.png '+path+order_path+'gifs/Animation-'+str_box+'-'+str_hp+'-'+str_xy+'-'+(os.path.basename(path+name)).replace('.fits','')+'.gif')
 
