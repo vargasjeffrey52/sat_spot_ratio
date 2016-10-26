@@ -11,7 +11,7 @@ import numpy.fft as fft
 import warnings
 import glob
 
-def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice = 0, last_slice = 36, high_pass = 0, box_size = 8, nudgexy = False, save_gif = False, path = ''):
+def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice = 0, last_slice = 36, high_pass = 0, box_size = 8, nudgexy = False, save_gif = False, path = '',order=1):
     """
     Main function for DM spot data
     Input:
@@ -67,10 +67,10 @@ def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice
     dm_sat_ratio = np.zeros((n_sat, 37), dtype=np.float64) * np.nan
     dm_sat_resid = np.zeros((n_sat, 37), dtype=np.float64) * np.nan
 
-    pool = mp.Pool()
-    kw = {'high_pass': high_pass, 'box_size': box_size, 'nudgexy': nudgexy, 'save_gif': save_gif, 'path': path}
+    pool = mp.Pool(6)
+    kw = {'high_pass': high_pass, 'box_size': box_size, 'nudgexy': nudgexy, 'save_gif': save_gif, 'path': path,"order": order}
     result1 = [pool.apply_async(slice_loop, (i, j, list_dm[i], star_pos, dm_pos1, 'ASU', 'DM spot'), kw) for i in range(0, n_dm) for j in range(first_slice, last_slice+1)]  
-    kw = {'high_pass': high_pass, 'box_size': box_size, 'nudgexy': nudgexy, 'save_gif': save_gif, 'path': path}
+    kw = {'high_pass': high_pass, 'box_size': box_size, 'nudgexy': nudgexy, 'save_gif': save_gif, 'path': path, "order": order}
     result2 = [pool.apply_async(slice_loop, (i, j, list_sat[i], dm_pos2, sat_pos, 'DM spot', 'Sat spot'), kw) for i in range(0, n_sat) for j in range(first_slice, last_slice+1)]  
     
     output = [p.get() for p in result1]
@@ -92,8 +92,8 @@ def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice
     #Now plot if save_gif is True
      #Create gif here
     if save_gif is True:
-        foo = [pool.apply_async(convert_gif, (path, list_dm[i], str_box, str_hp, str_xy)) for i in range(0, n_dm)]
-        foo = [pool.apply_async(convert_gif, (path, list_sat[i], str_box, str_hp, str_xy)) for i in range(0, n_sat)]
+        foo = [pool.apply_async(convert_gif, (path, list_dm[i], str_box, str_hp, str_xy, order)) for i in range(0, n_dm)]
+        foo = [pool.apply_async(convert_gif, (path, list_sat[i], str_box, str_hp, str_xy, order)) for i in range(0, n_sat)]
 
     #Also combine all dm and sat images together and run again
     avg_dm_cube = np.zeros((n_dm, 37, 281, 281), dtype=np.float64)
@@ -127,9 +127,9 @@ def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice
         fits.writeto(avg_name, avg_sat_cube, clobber=True)
 
 
-    kw = {'high_pass': high_pass, 'box_size': box_size, 'nudgexy': nudgexy, 'save_gif': True, 'avg_cube': avg_dm_cube, 'avg_name': os.path.basename(list_dm[0]).replace('.fits', '_avg.fits'), 'path': path}
+    kw = {'high_pass': high_pass, 'box_size': box_size, 'nudgexy': nudgexy, 'save_gif': True, 'avg_cube': avg_dm_cube, 'avg_name': os.path.basename(list_dm[0]).replace('.fits', '_avg.fits'), 'path': path,"order":order}
     result1 = [pool.apply_async(slice_loop, (0, j, None, star_pos, dm_pos1, 'ASU', 'DM spot'), kw) for j in range(first_slice, last_slice+1)]
-    kw = {'high_pass': high_pass, 'box_size': box_size, 'nudgexy': nudgexy, 'save_gif': True, 'avg_cube': avg_sat_cube, 'avg_name': os.path.basename(list_sat[0]).replace('.fits', '_avg.fits'), 'path': path}
+    kw = {'high_pass': high_pass, 'box_size': box_size, 'nudgexy': nudgexy, 'save_gif': True, 'avg_cube': avg_sat_cube, 'avg_name': os.path.basename(list_sat[0]).replace('.fits', '_avg.fits'), 'path': path,"order": order}
     result2 = [pool.apply_async(slice_loop, (0, j, None, dm_pos2, sat_pos, 'DM spot', 'Sat spot'), kw) for j in range(first_slice, last_slice+1)]
 
     avg_star_dm_ratio = np.zeros(37, dtype=np.float64) * np.nan
@@ -150,10 +150,14 @@ def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice
     pool.close()
     pool.join()
 
-    convert_gif(path, list_dm[0].replace('.fits','_avg.fits'), str_box, str_hp, str_xy)
-    convert_gif(path, list_sat[0].replace('.fits','_avg.fits'), str_box, str_hp, str_xy)
+    convert_gif(path, list_dm[0].replace('.fits','_avg.fits'), str_box, str_hp, str_xy, order)
+    convert_gif(path, list_sat[0].replace('.fits','_avg.fits'), str_box, str_hp, str_xy, order)
+    if order == 1 :
+            order_path = "Figure/"
+        else:
+            order_path = "Figure/2nd_order/"
 
-    for f in glob.glob(path+'Frames-*.png'):
+    for f in glob.glob(path+ order_path+'Frames-*.png'):
         os.remove(f)
 
     return wl, star_dm_ratio, dm_sat_ratio, star_dm_resid, dm_sat_resid, avg_star_dm_ratio, avg_dm_sat_ratio
@@ -267,7 +271,11 @@ def slice_loop(index, slice, file, xy1, xy2, name1, name2, high_pass = 0, box_si
         ax.yaxis.set_ticklabels([])
 
         fig.subplots_adjust(wspace=0.10, hspace=0.15)
-        plt.savefig(path+'Frames-'+base_name.replace('.fits','')+'-'+str(i).zfill(2)+'.png', dpi = 100, bbox_inches='tight')
+        if order == 1 :
+            order_path = "Figure/"
+        else:
+            order_path = "Figure/2nd_order/"
+        plt.savefig(path+order_path+'Frames-'+base_name.replace('.fits','')+'-'+str(i).zfill(2)+'.png', dpi = 100, bbox_inches='tight')
         plt.close('all')
 
     #Calculate mean of residuals here (currently using sum of absolute residuals)
@@ -458,9 +466,13 @@ def high_pass_filter(img, filtersize=10):
 
     return filtered
 
-def convert_gif(path, name, str_box, str_hp, str_xy):
+def convert_gif(path, name, str_box, str_hp, str_xy,order):
+    if order == 1 :
+            order_path = "Figure/"
+        else:
+            order_path = "Figure/2nd_order/"
 
-    os.system('convert -delay 25 -loop 0 '+path+'Frames-'+os.path.basename(path+name).replace('.fits','')+'-*.png '+path+'Figures/gifs/Animation-'+str_box+'-'+str_hp+'-'+str_xy+'-'+(os.path.basename(path+name)).replace('.fits','')+'.gif')
+    os.system('convert -delay 25 -loop 0 '+path+order_path+'Frames-'+os.path.basename(path+name).replace('.fits','')+'-*.png '+path+order_path+'gifs/Animation-'+str_box+'-'+str_hp+'-'+str_xy+'-'+(os.path.basename(path+name)).replace('.fits','')+'.gif')
 
     return 0
 
@@ -495,8 +507,8 @@ def save_spot_pos(band):
 
         sat_pos = sat_pos.astype(int)
 
-        order_2_sat_pos0 = np.array([[79, 165], [115, 81], [199, 117], [162, 201]])
-        order_2_sat_pos36 = np.array([[70, 168], [112, 72], [207, 114], [165, 211]])
+        order_2_sat_pos0 = np.array([[54, 171], [109, 56], [224, 111], [169, 226]])
+        order_2_sat_pos36 = np.array([[38, 177], [103, 40], [240, 105], [174, 242]])
         order_2_sat_pos = np.zeros((37, 4, 2), dtype=np.float64)
 
         for i in range(0, 37):
