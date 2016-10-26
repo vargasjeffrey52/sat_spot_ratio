@@ -289,6 +289,7 @@ def find_scale(im1, im2, box_size, nudgexy = False):
         dy = 0.0
         shifted_im1 = np.copy(im1)
     else:
+        #Don't worry about this part - not actually useful!
         guess = (np.nanmax(im2) / np.nanmax(im1), 0.0, 0.0)
         #result = optimize.minimize(minimize_psf, guess, args=(im1, radial_mask(im2, box_size), box_size, nudgexy), bounds = ((guess[0]*0.01, guess[0]*100.), (-0.5, 0.5), (-0.5, 0.5)), method = 'SLSQP') 
         result = optimize.minimize(minimize_psf, guess, args=(im1, radial_mask(im2, box_size), box_size, nudgexy), method = 'Nelder-Mead') 
@@ -316,6 +317,8 @@ def minimize_psf(p, im1, im2, box_size, nudgexy):
     if nudgexy is False:
         return np.nansum(np.abs(((p*im1) - im2)))
     else:
+
+        #Don't worry about this part - not actually useful!
         x, y = gen_xy(box_size + 4)
         x += p[1]
         y += p[2]
