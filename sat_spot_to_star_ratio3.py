@@ -239,14 +239,14 @@ def slice_loop(index, slice, file, xy1, xy2, name1, name2, high_pass = 0, box_si
             ax.yaxis.set_ticklabels([])
 
     #Compute scale factor here
-    scales, dx, dy, shifted_stamp1 = find_scale(stamp1, stamp2, box_size, nudgexy = nudgexy)
+    scales, dx, dy, shifted_stamp1, offset = find_scale(stamp1, stamp2, box_size, nudgexy = nudgexy)
     if nudgexy is True:
         stamp1[:,:] = shifted_stamp1
 
     if save_gif is True:
         #ax = plt.subplot(4, 3, 9)
         ax = all_ax[2][2]
-        cb = ax.imshow(radial_mask(stamp1*scales, box_size), interpolation = 'none', cmap = stamp_cm)
+        cb = ax.imshow(radial_mask(stamp1*scales-offset, box_size), interpolation = 'none', cmap = stamp_cm)
         cb = fig.colorbar(cb, ax = ax)
         cb.ax.tick_params(labelsize = 8)
         ax.set_title(name1+' x '+str(scales), fontsize=10)
@@ -262,7 +262,7 @@ def slice_loop(index, slice, file, xy1, xy2, name1, name2, high_pass = 0, box_si
 
         #ax = plt.subplot(4, 3, 12)
         ax = all_ax[3][2]
-        cb = ax.imshow(radial_mask(((stamp1*scales) - stamp2)/np.nanmax(stamp1*scales), box_size), interpolation = 'none', cmap = 'bwr', vmin = -0.1, vmax = 0.1)
+        cb = ax.imshow(radial_mask(((stamp1*scales-offset) - stamp2)/np.nanmax(stamp1*scales-offset), box_size), interpolation = 'none', cmap = 'bwr', vmin = -0.1, vmax = 0.1)
         cb = fig.colorbar(cb, ax = ax)
 
         cb.ax.tick_params(labelsize = 8)
@@ -279,7 +279,7 @@ def slice_loop(index, slice, file, xy1, xy2, name1, name2, high_pass = 0, box_si
         plt.close('all')
 
     #Calculate mean of residuals here (currently using sum of absolute residuals)
-    residuals = np.nanmean(radial_mask(np.abs((stamp1*scales) - stamp2), box_size))
+    residuals = np.nanmean(radial_mask(np.abs((stamp1*scales-offset) - stamp2), box_size))
 
     return index, slice, scales, residuals
 
@@ -290,9 +290,10 @@ def find_scale(im1, im2, box_size, nudgexy = False):
         return 0
 
     if nudgexy is False:
-        guess =  np.nanmax(im2) / np.nanmax(im1)
+        guess =  (np.nanmax(im2) / np.nanmax(im1),0)
         result = optimize.minimize(minimize_psf, guess, args=(radial_mask(im1, box_size), radial_mask(im2, box_size), box_size, nudgexy), method = 'Nelder-Mead') 
         scale = result.x[0]
+        offset = result.x[1]
         dx = 0.0
         dy = 0.0
         shifted_im1 = np.copy(im1)
@@ -310,10 +311,10 @@ def find_scale(im1, im2, box_size, nudgexy = False):
         y += dy
         shifted_im1 = ndimage.map_coordinates(im1, (y, x), cval = np.nan)
 
-    return scale, dx, dy, shifted_im1
+    return scale, dx, dy, shifted_im1, offset
 
 
-def minimize_psf(p, im1, im2, box_size, nudgexy): 
+def minimize_psf(p, im1, im2, box_size, nudgexy,offset): 
     """ Simply minimize residuals
     Args:
         scale - scale factor 
@@ -323,7 +324,7 @@ def minimize_psf(p, im1, im2, box_size, nudgexy):
         residuals for ave_dm and ave_sat
     """
     if nudgexy is False:
-        return np.nansum(np.abs(((p*im1) - im2)))
+        return np.nansum(np.abs(((p*im1-offset) - im2)))
     else:
 
         #Don't worry about this part - not actually useful!
