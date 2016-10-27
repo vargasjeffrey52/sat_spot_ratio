@@ -246,7 +246,7 @@ def slice_loop(index, slice, file, xy1, xy2, name1, name2, high_pass = 0, box_si
     if save_gif is True:
         #ax = plt.subplot(4, 3, 9)
         ax = all_ax[2][2]
-        cb = ax.imshow(radial_mask(stamp1*scales-offset, box_size), interpolation = 'none', cmap = stamp_cm)
+        cb = ax.imshow(radial_mask(stamp1*scales, box_size), interpolation = 'none', cmap = stamp_cm)
         cb = fig.colorbar(cb, ax = ax)
         cb.ax.tick_params(labelsize = 8)
         ax.set_title(name1+' x '+str(scales), fontsize=10)
@@ -262,7 +262,7 @@ def slice_loop(index, slice, file, xy1, xy2, name1, name2, high_pass = 0, box_si
 
         #ax = plt.subplot(4, 3, 12)
         ax = all_ax[3][2]
-        cb = ax.imshow(radial_mask(((stamp1*scales-offset) - stamp2)/np.nanmax(stamp1*scales-offset), box_size), interpolation = 'none', cmap = 'bwr', vmin = -0.1, vmax = 0.1)
+        cb = ax.imshow(radial_mask(((stamp1*scales) - stamp2)/np.nanmax(stamp1*scales), box_size), interpolation = 'none', cmap = 'bwr', vmin = -0.1, vmax = 0.1)
         cb = fig.colorbar(cb, ax = ax)
 
         cb.ax.tick_params(labelsize = 8)
@@ -324,7 +324,7 @@ def minimize_psf(p, im1, im2, box_size, nudgexy,offset):
         residuals for ave_dm and ave_sat
     """
     if nudgexy is False:
-        return np.nansum(np.abs(((p*im1-offset) - im2)))
+        return np.nansum(np.abs(((p[0]*im1) - (im2-offset))))
     else:
 
         #Don't worry about this part - not actually useful!
