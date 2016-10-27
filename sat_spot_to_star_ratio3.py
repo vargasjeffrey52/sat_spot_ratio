@@ -290,7 +290,7 @@ def find_scale(im1, im2, box_size, nudgexy = False):
         return 0
 
     if nudgexy is False:
-        guess =  (np.nanmax(im2) / np.nanmax(im1),0)
+        guess =  (np.nanmax(im2) / np.nanmax(im1), -1.0)
         result = optimize.minimize(minimize_psf, guess, args=(radial_mask(im1, box_size), radial_mask(im2, box_size), box_size, nudgexy), method = 'Nelder-Mead', options = {'maxiter': int(1e6) ,'maxfev': int(1e6)})
         if result.status != 0:
             print(result.message)
