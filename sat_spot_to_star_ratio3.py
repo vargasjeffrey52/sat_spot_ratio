@@ -67,7 +67,7 @@ def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice
     dm_sat_ratio = np.zeros((n_sat, 37), dtype=np.float64) * np.nan
     dm_sat_resid = np.zeros((n_sat, 37), dtype=np.float64) * np.nan
 
-    pool = mp.Pool(6)
+    pool = mp.Pool()
     kw = {'high_pass': high_pass, 'box_size': box_size, 'nudgexy': nudgexy, 'save_gif': save_gif, 'path': path,"order": order}
     result1 = [pool.apply_async(slice_loop, (i, j, list_dm[i], star_pos, dm_pos1, 'ASU', 'DM spot'), kw) for i in range(0, n_dm) for j in range(first_slice, last_slice+1)]  
     kw = {'high_pass': high_pass, 'box_size': box_size, 'nudgexy': nudgexy, 'save_gif': save_gif, 'path': path, "order": order}
@@ -249,7 +249,7 @@ def slice_loop(index, slice, file, xy1, xy2, name1, name2, high_pass = 0, box_si
         cb = ax.imshow(radial_mask(stamp1*scales, box_size), interpolation = 'none', cmap = stamp_cm)
         cb = fig.colorbar(cb, ax = ax)
         cb.ax.tick_params(labelsize = 8)
-        ax.set_title(name1+' x '+str(scales), fontsize=10)
+        ax.set_title(name1+' x '+str("{0:.4f}".format(scales))+", y"+str("{0:.4f}".format(offset)), fontsize=10)
 
         if nudgexy is True:
             dx_str = '%0.3f' % (dx)
@@ -314,7 +314,7 @@ def find_scale(im1, im2, box_size, nudgexy = False):
     return scale, dx, dy, shifted_im1, offset
 
 
-def minimize_psf(p, im1, im2, box_size, nudgexy,offset): 
+def minimize_psf(p, im1, im2, box_size, nudgexy): 
     """ Simply minimize residuals
     Args:
         scale - scale factor 
