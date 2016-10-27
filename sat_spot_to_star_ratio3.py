@@ -262,7 +262,7 @@ def slice_loop(index, slice, file, xy1, xy2, name1, name2, high_pass = 0, box_si
 
         #ax = plt.subplot(4, 3, 12)
         ax = all_ax[3][2]
-        cb = ax.imshow(radial_mask(((stamp1*scales) - stamp2)/np.nanmax(stamp1*scales), box_size), interpolation = 'none', cmap = 'bwr', vmin = -0.1, vmax = 0.1)
+        cb = ax.imshow(radial_mask(((stamp1*scales) - (stamp2-offset))/np.nanmax(stamp1*scales), box_size), interpolation = 'none', cmap = 'bwr', vmin = -0.1, vmax = 0.1)
         cb = fig.colorbar(cb, ax = ax)
 
         cb.ax.tick_params(labelsize = 8)
@@ -279,7 +279,7 @@ def slice_loop(index, slice, file, xy1, xy2, name1, name2, high_pass = 0, box_si
         plt.close('all')
 
     #Calculate mean of residuals here (currently using sum of absolute residuals)
-    residuals = np.nanmean(radial_mask(np.abs((stamp1*scales-offset) - stamp2), box_size))
+    residuals = np.nanmean(radial_mask(np.abs((stamp1*scales) - (stamp2-offset)), box_size))
 
     return index, slice, scales, residuals
 
@@ -291,7 +291,9 @@ def find_scale(im1, im2, box_size, nudgexy = False):
 
     if nudgexy is False:
         guess =  (np.nanmax(im2) / np.nanmax(im1),0)
-        result = optimize.minimize(minimize_psf, guess, args=(radial_mask(im1, box_size), radial_mask(im2, box_size), box_size, nudgexy), method = 'Nelder-Mead') 
+        result = optimize.minimize(minimize_psf, guess, args=(radial_mask(im1, box_size), radial_mask(im2, box_size), box_size, nudgexy), method = 'Nelder-Mead', options = {'maxiter': int(1e6) ,'maxfev': int(1e6)})
+        if result.status != 0:
+            print(result.message)
         scale = result.x[0]
         offset = result.x[1]
         dx = 0.0
@@ -301,7 +303,7 @@ def find_scale(im1, im2, box_size, nudgexy = False):
         #Don't worry about this part - not actually useful!
         guess = (np.nanmax(im2) / np.nanmax(im1), 0.0, 0.0)
         #result = optimize.minimize(minimize_psf, guess, args=(im1, radial_mask(im2, box_size), box_size, nudgexy), bounds = ((guess[0]*0.01, guess[0]*100.), (-0.5, 0.5), (-0.5, 0.5)), method = 'SLSQP') 
-        result = optimize.minimize(minimize_psf, guess, args=(im1, radial_mask(im2, box_size), box_size, nudgexy), method = 'Nelder-Mead') 
+        result = optimize.minimize(minimize_psf, guess, args=(im1, radial_mask(im2, box_size), box_size, nudgexy), method = 'Nelder-Mead', options = {'maxiter': int(1e6) ,'maxfev': int(1e6)}) 
         scale = result.x[0]
         dx = result.x[1]
         dy = result.x[2]
