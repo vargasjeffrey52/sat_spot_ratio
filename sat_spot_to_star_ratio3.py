@@ -324,7 +324,7 @@ def minimize_psf(p, im1, im2, box_size, nudgexy,offset):
         residuals for ave_dm and ave_sat
     """
     if nudgexy is False:
-        return np.nansum(np.abs(((p[0]*im1) - (im2-offset))))
+        return np.nansum(np.abs(((p[0]*im1) - (im2-p[1]))))
     else:
 
         #Don't worry about this part - not actually useful!
