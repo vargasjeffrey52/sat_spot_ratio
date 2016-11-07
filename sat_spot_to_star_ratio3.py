@@ -11,7 +11,7 @@ import numpy.fft as fft
 import warnings
 import glob
 
-def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice = 0, last_slice = 36, high_pass = 0, box_size = 8, nudgexy = False, save_gif = False, path = '',order=1):
+def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice = 0, last_slice = 36, high_pass = 0, box_size = 8, nudgexy = False, offset = False, save_gif = False, path = '',order=1):
     """
     Main function for DM spot data
     Input:
@@ -55,11 +55,14 @@ def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice
     #Save some file name strings
     str_box = 's'+str(box_size).zfill(2)
     str_hp = 'hp'+str(high_pass).zfill(2)
-
     if nudgexy is True:
         str_xy = 'nudge1'
     else:
         str_xy = 'nudge0'
+    if offset is True:
+        str_offset = 'offset1'
+    else:
+        str_offset = 'offset0'
 
     #This will be parallelized
     star_dm_ratio = np.zeros((n_dm, 37), dtype=np.float64) * np.nan
@@ -67,10 +70,13 @@ def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice
     dm_sat_ratio = np.zeros((n_sat, 37), dtype=np.float64) * np.nan
     dm_sat_resid = np.zeros((n_sat, 37), dtype=np.float64) * np.nan
 
+    #foo = slice_loop(0, first_slice, list_dm[0], star_pos, dm_pos1, 'ASU', 'DM spot', high_pass = high_pass, box_size = box_size, nudgexy = nudgexy, offset=offset, save_gif = save_gif, path = path, order = order)
+    #print kaljlkj
+
     pool = mp.Pool()
-    kw = {'high_pass': high_pass, 'box_size': box_size, 'nudgexy': nudgexy, 'save_gif': save_gif, 'path': path,"order": order}
+    kw = {'high_pass': high_pass, 'box_size': box_size, 'nudgexy': nudgexy, 'offset': offset, 'save_gif': save_gif, 'path': path,"order": order}
     result1 = [pool.apply_async(slice_loop, (i, j, list_dm[i], star_pos, dm_pos1, 'ASU', 'DM spot'), kw) for i in range(0, n_dm) for j in range(first_slice, last_slice+1)]  
-    kw = {'high_pass': high_pass, 'box_size': box_size, 'nudgexy': nudgexy, 'save_gif': save_gif, 'path': path, "order": order}
+    kw = {'high_pass': high_pass, 'box_size': box_size, 'nudgexy': nudgexy, 'offset': offset, 'save_gif': save_gif, 'path': path, "order": order}
     result2 = [pool.apply_async(slice_loop, (i, j, list_sat[i], dm_pos2, sat_pos, 'DM spot', 'Sat spot'), kw) for i in range(0, n_sat) for j in range(first_slice, last_slice+1)]  
     
     output = [p.get() for p in result1]
@@ -92,8 +98,8 @@ def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice
     #Now plot if save_gif is True
      #Create gif here
     if save_gif is True:
-        foo = [pool.apply_async(convert_gif, (path, list_dm[i], str_box, str_hp, str_xy, order)) for i in range(0, n_dm)]
-        foo = [pool.apply_async(convert_gif, (path, list_sat[i], str_box, str_hp, str_xy, order)) for i in range(0, n_sat)]
+        foo = [pool.apply_async(convert_gif, (path, list_dm[i], str_box, str_hp, str_xy, str_offset, order)) for i in range(0, n_dm)]
+        foo = [pool.apply_async(convert_gif, (path, list_sat[i], str_box, str_hp, str_xy, str_offset, order)) for i in range(0, n_sat)]
 
     #Also combine all dm and sat images together and run again
     avg_dm_cube = np.zeros((n_dm, 37, 281, 281), dtype=np.float64)
@@ -127,9 +133,9 @@ def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice
         fits.writeto(avg_name, avg_sat_cube, clobber=True)
 
 
-    kw = {'high_pass': high_pass, 'box_size': box_size, 'nudgexy': nudgexy, 'save_gif': True, 'avg_cube': avg_dm_cube, 'avg_name': os.path.basename(list_dm[0]).replace('.fits', '_avg.fits'), 'path': path,"order":order}
+    kw = {'high_pass': high_pass, 'box_size': box_size, 'nudgexy': nudgexy, 'offset': offset, 'save_gif': True, 'avg_cube': avg_dm_cube, 'avg_name': os.path.basename(list_dm[0]).replace('.fits', '_avg.fits'), 'path': path,"order":order}
     result1 = [pool.apply_async(slice_loop, (0, j, None, star_pos, dm_pos1, 'ASU', 'DM spot'), kw) for j in range(first_slice, last_slice+1)]
-    kw = {'high_pass': high_pass, 'box_size': box_size, 'nudgexy': nudgexy, 'save_gif': True, 'avg_cube': avg_sat_cube, 'avg_name': os.path.basename(list_sat[0]).replace('.fits', '_avg.fits'), 'path': path,"order": order}
+    kw = {'high_pass': high_pass, 'box_size': box_size, 'nudgexy': nudgexy, 'offset': offset, 'save_gif': True, 'avg_cube': avg_sat_cube, 'avg_name': os.path.basename(list_sat[0]).replace('.fits', '_avg.fits'), 'path': path,"order": order}
     result2 = [pool.apply_async(slice_loop, (0, j, None, dm_pos2, sat_pos, 'DM spot', 'Sat spot'), kw) for j in range(first_slice, last_slice+1)]
 
     avg_star_dm_ratio = np.zeros(37, dtype=np.float64) * np.nan
@@ -150,8 +156,8 @@ def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice
     pool.close()
     pool.join()
 
-    convert_gif(path, list_dm[0].replace('.fits','_avg.fits'), str_box, str_hp, str_xy, order)
-    convert_gif(path, list_sat[0].replace('.fits','_avg.fits'), str_box, str_hp, str_xy, order)
+    convert_gif(path, list_dm[0].replace('.fits','_avg.fits'), str_box, str_hp, str_xy, str_offset, order)
+    convert_gif(path, list_sat[0].replace('.fits','_avg.fits'), str_box, str_hp, str_xy, str_offset, order)
     if order == 1 :
         order_path = "Figures/"
     else:
@@ -170,7 +176,7 @@ def ratio_companion():
 
     return 0
 
-def slice_loop(index, slice, file, xy1, xy2, name1, name2, high_pass = 0, box_size = 8, nudgexy = False, save_gif = False, avg_cube = None, avg_name = None, path = '',order =1):
+def slice_loop(index, slice, file, xy1, xy2, name1, name2, high_pass = 0, box_size = 8, nudgexy = False, offset = False, save_gif = False, avg_cube = None, avg_name = None, path = '',order =1):
 
     """
         First object should be brighter than the second, xy1 = star, xy2 = dm, xy1 = dm, xy2 = sat.
@@ -239,7 +245,7 @@ def slice_loop(index, slice, file, xy1, xy2, name1, name2, high_pass = 0, box_si
             ax.yaxis.set_ticklabels([])
 
     #Compute scale factor here
-    scales, dx, dy, shifted_stamp1, offset = find_scale(stamp1, stamp2, box_size, nudgexy = nudgexy)
+    scales, offset_value, dx, dy, shifted_stamp1 = find_scale(stamp1, stamp2, box_size, nudgexy = nudgexy, offset = offset)
     if nudgexy is True:
         stamp1[:,:] = shifted_stamp1
 
@@ -249,7 +255,7 @@ def slice_loop(index, slice, file, xy1, xy2, name1, name2, high_pass = 0, box_si
         cb = ax.imshow(radial_mask(stamp1*scales, box_size), interpolation = 'none', cmap = stamp_cm)
         cb = fig.colorbar(cb, ax = ax)
         cb.ax.tick_params(labelsize = 8)
-        ax.set_title('scale: '+str("{0:.4f}".format(scales))+" offset: "+str("{0:.4f}".format(offset)), fontsize=9)
+        ax.set_title('scale: '+str("{0:.4f}".format(scales))+" offset: "+str("{0:.4f}".format(offset_value)), fontsize=9)
 
         if nudgexy is True:
             dx_str = '%0.3f' % (dx)
@@ -262,7 +268,7 @@ def slice_loop(index, slice, file, xy1, xy2, name1, name2, high_pass = 0, box_si
 
         #ax = plt.subplot(4, 3, 12)
         ax = all_ax[3][2]
-        cb = ax.imshow(radial_mask(((stamp1*scales) - (stamp2-offset))/np.nanmax(stamp1*scales), box_size), interpolation = 'none', cmap = 'bwr', vmin = -0.1, vmax = 0.1)
+        cb = ax.imshow(radial_mask(((stamp1*scales) - (stamp2-offset_value))/np.nanmax(stamp1*scales), box_size), interpolation = 'none', cmap = 'bwr', vmin = -0.1, vmax = 0.1)
         cb = fig.colorbar(cb, ax = ax)
 
         cb.ax.tick_params(labelsize = 8)
@@ -271,54 +277,95 @@ def slice_loop(index, slice, file, xy1, xy2, name1, name2, high_pass = 0, box_si
         ax.yaxis.set_ticklabels([])
 
         fig.subplots_adjust(wspace=0.10, hspace=0.15)
+
         if order == 1 :
             order_path = "Figures/"
         else:
             order_path = "Figures/2nd_order/"
-        plt.savefig(path+order_path+'Frames-'+base_name.replace('.fits','')+'-'+str(i).zfill(2)+'.png', dpi = 100, bbox_inches='tight')
+
+        str_box = 's'+str(box_size).zfill(2)
+        str_hp = 'hp'+str(high_pass).zfill(2)
+        if nudgexy is True:
+            str_xy = 'nudge1'
+        else:
+            str_xy = 'nudge0'
+        if offset is True:
+            str_offset = 'offset1'
+        else:
+            str_offset = 'offset0'
+
+        plt.savefig(path+order_path+'Frames-'+str_box+'-'+str_hp+'-'+str_xy+'-'+str_offset+'-'+base_name.replace('.fits','')+'-'+str(i).zfill(2)+'.png', dpi = 100, bbox_inches='tight')
         plt.close('all')
 
     #Calculate mean of residuals here (currently using sum of absolute residuals)
-    residuals = np.nanmean(radial_mask(np.abs((stamp1*scales) - (stamp2-offset)), box_size))
+    residuals = np.nanmean(radial_mask(np.abs((stamp1*scales) - (stamp2-offset_value)), box_size))
 
     return index, slice, scales, residuals
 
-def find_scale(im1, im2, box_size, nudgexy = False):
+def find_scale(im1, im2, box_size, nudgexy = False, offset = False):
 
     if (np.size(im1) != np.size(im2)):
         print ('Stamps do not have same dimensions')
         return 0
 
     if nudgexy is False:
-        guess_scale = np.nanmax(im2) / np.nanmax(im1)
-        guess_offset = (-1.0)*np.nanmean((guess_scale*im1) - im2)
-        guess = (guess_scale, guess_offset)
-        result = optimize.minimize(minimize_psf, guess, args=(radial_mask(im1, box_size), radial_mask(im2, box_size), box_size, nudgexy), method = 'Nelder-Mead', options = {'maxiter': int(1e6) ,'maxfev': int(1e6)})
-        if result.status != 0:
-            print(result.message)
-        scale = result.x[0]
-        offset = result.x[1]
-        dx = 0.0
-        dy = 0.0
-        shifted_im1 = np.copy(im1)
+        if offset is False:
+            guess = np.nanmax(im2) / np.nanmax(im1)
+            result = optimize.minimize(minimize_psf, guess, args=(radial_mask(im1, box_size), radial_mask(im2, box_size), box_size, nudgexy, offset), method = 'Nelder-Mead', options = {'maxiter': int(1e6) ,'maxfev': int(1e6)})
+            if result.status != 0:
+                print(result.message)
+            scale = result.x[0]
+            offset_value = 0.0
+            dx = 0.0
+            dy = 0.0
+            shifted_im1 = np.copy(im1)
+
+        else:
+            guess_scale = np.nanmax(im2) / np.nanmax(im1)
+            guess_offset = (-1.0)*np.nanmean((guess_scale*im1) - im2)
+            guess = (guess_scale, guess_offset)
+            result = optimize.minimize(minimize_psf, guess, args=(radial_mask(im1, box_size), radial_mask(im2, box_size), box_size, nudgexy, offset), method = 'Nelder-Mead', options = {'maxiter': int(1e6) ,'maxfev': int(1e6)})
+            if result.status != 0:
+                print(result.message)
+            scale = result.x[0]
+            offset_value = result.x[1]
+            dx = 0.0
+            dy = 0.0
+            shifted_im1 = np.copy(im1)
     else:
         #Don't worry about this part - not actually useful!
-        guess = (np.nanmax(im2) / np.nanmax(im1), 0.0, 0.0)
-        #result = optimize.minimize(minimize_psf, guess, args=(im1, radial_mask(im2, box_size), box_size, nudgexy), bounds = ((guess[0]*0.01, guess[0]*100.), (-0.5, 0.5), (-0.5, 0.5)), method = 'SLSQP') 
-        result = optimize.minimize(minimize_psf, guess, args=(im1, radial_mask(im2, box_size), box_size, nudgexy), method = 'Nelder-Mead', options = {'maxiter': int(1e6) ,'maxfev': int(1e6)}) 
-        scale = result.x[0]
-        dx = result.x[1]
-        dy = result.x[2]
+        if offset is False:
+            guess = (np.nanmax(im2) / np.nanmax(im1), 0.0, 0.0)
+            #result = optimize.minimize(minimize_psf, guess, args=(im1, radial_mask(im2, box_size), box_size, nudgexy), bounds = ((guess[0]*0.01, guess[0]*100.), (-0.5, 0.5), (-0.5, 0.5)), method = 'SLSQP') 
+            result = optimize.minimize(minimize_psf, guess, args=(im1, radial_mask(im2, box_size), box_size, nudgexy), method = 'Nelder-Mead', options = {'maxiter': int(1e6) ,'maxfev': int(1e6)}) 
+            scale = result.x[0]
+            dx = result.x[1]
+            dy = result.x[2]
+            offset_value = 0.0
 
-        x, y = gen_xy(box_size + 4)
-        x += dx
-        y += dy
-        shifted_im1 = ndimage.map_coordinates(im1, (y, x), cval = np.nan)
+            x, y = gen_xy(box_size + 4)
+            x += dx
+            y += dy
+            shifted_im1 = ndimage.map_coordinates(im1, (y, x), cval = np.nan)
+        else:
+            guess = (np.nanmax(im2) / np.nanmax(im1), 0.0, 0.0, (-1.0)*np.nanmean((guess_scale*im1) - im2))
+            #result = optimize.minimize(minimize_psf, guess, args=(im1, radial_mask(im2, box_size), box_size, nudgexy), bounds = ((guess[0]*0.01, guess[0]*100.), (-0.5, 0.5), (-0.5, 0.5)), method = 'SLSQP') 
+            result = optimize.minimize(minimize_psf, guess, args=(im1, radial_mask(im2, box_size), box_size, nudgexy), method = 'Nelder-Mead', options = {'maxiter': int(1e6) ,'maxfev': int(1e6)}) 
+            scale = result.x[0]
+            dx = result.x[1]
+            dy = result.x[2]
+            offset_value = result.x[3]
 
-    return scale, dx, dy, shifted_im1, offset
+            x, y = gen_xy(box_size + 4)
+            x += dx
+            y += dy
+            shifted_im1 = ndimage.map_coordinates(im1, (y, x), cval = np.nan)
 
 
-def minimize_psf(p, im1, im2, box_size, nudgexy): 
+    return scale, offset_value, dx, dy, shifted_im1
+
+
+def minimize_psf(p, im1, im2, box_size, nudgexy, offset): 
     """ Simply minimize residuals
     Args:
         scale - scale factor 
@@ -327,17 +374,30 @@ def minimize_psf(p, im1, im2, box_size, nudgexy):
     return:
         residuals for ave_dm and ave_sat
     """
+
     if nudgexy is False:
-        return np.nansum(np.abs(((p[0]*im1) - (im2-p[1]))))
+        if offset is True:
+            return np.nansum(np.abs(((p[0]*im1) - (im2-p[1]))))
+        else:
+            return np.nansum(np.abs(((p*im1) - im2)))
     else:
+        if offset is True:
+            #Don't worry about this part - not actually useful!
+            x, y = gen_xy(box_size + 4)
+            x += p[1]
+            y += p[2]
+            shifted_im1 = ndimage.map_coordinates(im1, (y, x), cval = np.nan)
 
-        #Don't worry about this part - not actually useful!
-        x, y = gen_xy(box_size + 4)
-        x += p[1]
-        y += p[2]
-        shifted_im1 = ndimage.map_coordinates(im1, (y, x), cval = np.nan)
+            return np.nansum(np.abs(((p[0]*shifted_im1) - (im2-p[3]))))
 
-        return np.nansum(np.abs(((p[0]*shifted_im1) - im2)))
+        else:
+            #Don't worry about this part - not actually useful!
+            x, y = gen_xy(box_size + 4)
+            x += p[1]
+            y += p[2]
+            shifted_im1 = ndimage.map_coordinates(im1, (y, x), cval = np.nan)
+
+            return np.nansum(np.abs(((p[0]*shifted_im1) - im2)))
 
 
 def radial_mask(im, box_size, return_indx = False):
@@ -471,13 +531,13 @@ def high_pass_filter(img, filtersize=10):
 
     return filtered
 
-def convert_gif(path, name, str_box, str_hp, str_xy,order):
+def convert_gif(path, name, str_box, str_hp, str_xy, str_offset, order):
     if order == 1 :
         order_path = "Figures/"
     else:
         order_path = "Figures/2nd_order/"
 
-    os.system('convert -delay 25 -loop 0 '+path+order_path+'Frames-'+os.path.basename(path+name).replace('.fits','')+'-*.png '+path+order_path+'gifs/Animation-'+str_box+'-'+str_hp+'-'+str_xy+'-'+(os.path.basename(path+name)).replace('.fits','')+'.gif')
+    os.system('convert -delay 25 -loop 0 '+path+order_path+'Frames-'+str_box+'-'+str_hp+'-'+str_xy+'-'+str_offset+'-'+os.path.basename(path+name).replace('.fits','')+'-*.png '+path+order_path+'gifs/Animation-'+str_box+'-'+str_hp+'-'+str_xy+'-'+str_offset+'-'+(os.path.basename(path+name)).replace('.fits','')+'.gif')
 
     return 0
 
