@@ -249,7 +249,7 @@ def slice_loop(index, slice, file, xy1, xy2, name1, name2, high_pass = 0, box_si
         cb = ax.imshow(radial_mask(stamp1*scales, box_size), interpolation = 'none', cmap = stamp_cm)
         cb = fig.colorbar(cb, ax = ax)
         cb.ax.tick_params(labelsize = 8)
-        ax.set_title(name1+' x '+str("{0:.4f}".format(scales))+", y"+str("{0:.4f}".format(offset)), fontsize=10)
+        ax.set_title('scale: '+str("{0:.4f}".format(scales))+" offset: "+str("{0:.4f}".format(offset)), fontsize=9)
 
         if nudgexy is True:
             dx_str = '%0.3f' % (dx)
@@ -290,7 +290,9 @@ def find_scale(im1, im2, box_size, nudgexy = False):
         return 0
 
     if nudgexy is False:
-        guess =  (np.nanmax(im2) / np.nanmax(im1), -1.0)
+        guess_scale = np.nanmax(im2) / np.nanmax(im1)
+        guess_offset = (-1.0)*np.nanmean((guess_scale*im1) - im2)
+        guess = (guess_scale, guess_offset)
         result = optimize.minimize(minimize_psf, guess, args=(radial_mask(im1, box_size), radial_mask(im2, box_size), box_size, nudgexy), method = 'Nelder-Mead', options = {'maxiter': int(1e6) ,'maxfev': int(1e6)})
         if result.status != 0:
             print(result.message)
