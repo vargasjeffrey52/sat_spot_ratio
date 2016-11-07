@@ -163,7 +163,7 @@ def ratio_dm(list_dm, list_sat, star_pos, dm_pos1, dm_pos2, sat_pos, first_slice
     else:
         order_path = "Figures/2nd_order/"
 
-    for f in glob.glob(path+ order_path+'Frames-*.png'):
+    for f in glob.glob(path+ order_path+'Frames-'+str_box+'-'+str_hp+'-'+str_xy+'-'+str_offset+'*.png'):
         os.remove(f)
 
     return wl, star_dm_ratio, dm_sat_ratio, star_dm_resid, dm_sat_resid, avg_star_dm_ratio, avg_dm_sat_ratio
