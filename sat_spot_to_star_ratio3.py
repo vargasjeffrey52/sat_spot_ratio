@@ -546,10 +546,15 @@ def save_spot_pos(band):
     #Simple function to save satellite spot position guesses
     #Valid for UCSC lab data
 
-    if band == 'J':
+    if band == 'J_Hapod':
+        # old data pixel coordinates
+        #dm_pos0 = np.array([[129, 161], [117, 131], [148, 119], [159, 149]])
+        #dm_pos36 = np.array([[127, 165], [113, 129], [149, 115], [163, 151]])
+        dm_pos0 = np.array([[120.500,147.500], [142.750,174.750], [148.000,125.000], [170.000,152.250]])
+        dm_pos36 = np.array([[116.250,147.500], [142.250,179.250], [148.250,120.750], [174.000,152.250]])
 
-        dm_pos0 = np.array([[129, 161], [117, 131], [148, 119], [159, 149]])
-        dm_pos36 = np.array([[127, 165], [113, 129], [149, 115], [163, 151]])
+
+
         dm_pos = np.zeros((37, 4, 2), dtype=np.float64)
 
         for i in range(0, 37):
@@ -560,8 +565,12 @@ def save_spot_pos(band):
 
         dm_pos = dm_pos.astype(int)
 
-        sat_pos0 = np.array([[97, 156], [124, 99], [182, 126], [154, 183]])
-        sat_pos36 = np.array([[89, 159], [121, 91], [190, 123], [157, 191]])
+        # old data pixel coordinates
+        #sat_pos0 = np.array([[97, 156], [124, 99], [182, 126], [154, 183]])
+        #sat_pos36 = np.array([[89, 159], [121, 91], [190, 123], [157, 191]])
+        sat_pos0 = np.array([[106.840,165.916], [163.666,188.261], [128.944,108.689], [185.850,130.390]])
+        sat_pos36 = np.array([[99.526,168.971], [167.042,194.530], [126.050, 102.420], [192.119,127.497]])
+
         sat_pos = np.zeros((37, 4, 2), dtype=np.float64)
 
         for i in range(0, 37):
@@ -572,8 +581,11 @@ def save_spot_pos(band):
 
         sat_pos = sat_pos.astype(int)
 
-        order_2_sat_pos0 = np.array([[54, 171], [109, 56], [224, 111], [169, 226]])
-        order_2_sat_pos36 = np.array([[38, 177], [103, 40], [240, 105], [174, 242]])
+        # old data pixel coordinates
+        #order_2_sat_pos0 = np.array([[54, 171], [109, 56], [224, 111], [169, 226]])
+        #order_2_sat_pos36 = np.array([[38, 177], [103, 40], [240, 105], [174, 242]])
+        order_2_sat_pos0 = np.array([[67.215,184.403], [181.509,227.323], [110.618,69.144], [225.394,112.547]])
+        order_2_sat_pos36 = np.array([[53.712,190.672], [187.779,240.826], [104.831,55.641], [238.897,106.278]])
         order_2_sat_pos = np.zeros((37, 4, 2), dtype=np.float64)
 
         for i in range(0, 37):
@@ -588,7 +600,7 @@ def save_spot_pos(band):
         fits.writeto('centers_'+band+'_sat.fits', sat_pos, clobber=True)
         fits.writeto('centers_'+band+'_sat2.fits', order_2_sat_pos, clobber=True)
 
-    if band == 'K2':
+    if band == 'K2_Hapod':
 
         #Limited wavelength coverage, channel 6 -- 11 only
 
@@ -620,10 +632,13 @@ def save_spot_pos(band):
         fits.writeto('centers_'+band+'_sat.fits', sat_pos, clobber=True)
 
 
-    if band == 'Y':
+    if band == 'Y_Hapod':
 
-        dm_pos0 = np.array([[131, 160], [122, 133], [147, 124], [157, 149]])
-        dm_pos36 = np.array([[130, 162], [118, 133], [148, 121], [160, 151]])
+        # old data pixel coodinates
+        #dm_pos0 = np.array([[131, 160], [122, 133], [147, 124], [157, 149]])
+        #dm_pos36 = np.array([[130, 162], [118, 133], [148, 121], [160, 151]])
+        dm_pos0 = np.array([[126.500,148.00], [145.361,171.525], [150.109,129.759], [168.521,152.435]])
+        dm_pos36 = np.array([[123.234,148.106], [145.070,174.722], [150.303,126.271], [171.815,152.822]])
         dm_pos = np.zeros((37, 4, 2), dtype=np.float64)
 
         for i in range(0, 37):
@@ -634,8 +649,11 @@ def save_spot_pos(band):
 
         dm_pos = dm_pos.astype(int)
 
-        sat_pos0 = np.array([[103, 156], [125, 106], [175, 127], [154, 177]])
-        sat_pos36 = np.array([[97, 159], [122, 100], [181, 124], [156, 183]])
+        # old data pixel coordinates
+        #sat_pos0 = np.array([[103, 156], [125, 106], [175, 127], [154, 177]])
+        #sat_pos36 = np.array([[97, 159], [122, 100], [181, 124], [156, 183]])
+        sat_pos0 = np.array([[113.512,163.184], [161.255,181.509], [131.837,114.476], [171.580,133.284]])
+        sat_pos36 = np.array([[107.725,166.077], [164.148,187.296], [129.426,109.171], [185.367,130.873]])
         sat_pos = np.zeros((37, 4, 2), dtype=np.float64)
 
         for i in range(0, 37):
@@ -646,8 +664,11 @@ def save_spot_pos(band):
 
         sat_pos = sat_pos.astype(int)
 
-        order_2_sat_pos0 = np.array([[68, 170], [111, 70], [210, 113], [168, 213]])
-        order_2_sat_pos36 = np.array([[56, 175], [105, 58], [223, 107], [173, 225]])
+        # old data pixel coodinates
+        #order_2_sat_pos0 = np.array([[68, 170], [111, 70], [210, 113], [168, 213]])
+        #order_2_sat_pos36 = np.array([[56, 175], [105, 58], [223, 107], [173, 225]])
+        order_2_sat_pos0 = np.array([[80.236,178.616], [175.722,214.785], [116.887,81.683], [213.338,117.852]])
+        order_2_sat_pos36 = np.array([[69.144,183.921], [181.509,226.841], [112.065,70.591], [224.912,113.029]])
         order_2_sat_pos = np.zeros((37, 4, 2), dtype=np.float64)
 
         for i in range(0, 37):
@@ -661,5 +682,68 @@ def save_spot_pos(band):
         fits.writeto('centers_'+band+'_dm.fits', dm_pos, clobber=True)
         fits.writeto('centers_'+band+'_sat.fits', sat_pos, clobber=True)
         fits.writeto('centers_'+band+'_sat2.fits', order_2_sat_pos, clobber=True)
+
+    if band == 'H_Hapod':
+
+        dm_pos0 = np.array([[112.750,144.750], [143.000,181.175], [149.500,114.500], [179.750,151.250]])
+        dm_pos36 = np.array([[107.750,144.500], [142.250,187.000], [150.000,109.000], [185.500,153.250]])
+        dm_pos = np.zeros((37, 4, 2), dtype=np.float64)
+
+        for i in range(0, 37):
+            for j in range(0, 4):
+                for k in range(0, 2):
+                    delta = float(dm_pos36[j, k] - dm_pos0[j, k])/37.0
+                    dm_pos[i, j, k] = dm_pos0[j, k] + (delta * float(i))
+
+        dm_pos = dm_pos.astype(int)
+
+        sat_pos0 = np.array([[93.778,171.208], [169.200,201.000], [122.400,95.400], [198.000,124.200]])
+        sat_pos36 = np.array([[84.000,175.800], [173.400,209.400], [118.800,86.400], [207.600,120.000]])
+        sat_pos = np.zeros((37, 4, 2), dtype=np.float64)
+
+        for i in range(0, 37):
+            for j in range(0, 4):
+                for k in range(0, 2):
+                    delta = float(sat_pos36[j, k] - sat_pos0[j, k])/37.0
+                    sat_pos[i, j, k] = sat_pos0[j, k] + (delta * float(i))
+
+        sat_pos = sat_pos.astype(int)
+
+
+        fits.writeto('centers_'+band+'_dm.fits', dm_pos, clobber=True)
+        fits.writeto('centers_'+band+'_sat.fits', sat_pos, clobber=True)
+    if band == 'K1_Hapod':
+
+        dm_pos0 = np.array([[103.000,143.500], [139.000,189.000], [148.000,106.000], [185.000,152.000]])
+        dm_pos36 = np.array([[101.500,143.500], [139.500,189.500], [148.00,105.500], [186.000,151.500]])
+        dm_pos = np.zeros((37, 4, 2), dtype=np.float64)
+        #print(np.shape(dm_pos0))
+        #print(np.shape(dm_pos36))
+
+        for i in range(0, 37):
+            for j in range(0, 4):
+                for k in range(0, 2):
+                    delta = float(dm_pos36[j, k] - dm_pos0[j, k])/37.0
+                    dm_pos[i, j, k] = dm_pos0[j, k] + (delta * float(i))
+
+        dm_pos = dm_pos.astype(int)
+
+        sat_pos0 = np.array([[78.789,176.687], [172.829,212.856], [114.958,82.165], [208.998,117.852]])
+        sat_pos36 = np.array([[77.343,178.133], [173.793,214.785], [114.476,81.201], [210.927,117.370]])
+        sat_pos = np.zeros((37, 4, 2), dtype=np.float64)
+        print(np.shape(sat_pos0))
+        print(np.shape(sat_pos36))
+
+        for i in range(0, 37):
+            for j in range(0, 4):
+                for k in range(0, 2):
+                    delta = float(sat_pos36[j, k] - sat_pos0[j, k])/37.0
+                    sat_pos[i, j, k] = sat_pos0[j, k] + (delta * float(i))
+
+        sat_pos = sat_pos.astype(int)
+
+
+        fits.writeto('centers_'+band+'_dm.fits', dm_pos, clobber=True)
+        fits.writeto('centers_'+band+'_sat.fits', sat_pos, clobber=True)
 
 
